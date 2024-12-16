@@ -8,18 +8,19 @@
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Program Files\dotnet\sdk\7.0.410\MSBuild.dll</s:String>
 	<s:Int64 x:Key="/Default/Environment/Hierarchy/Build/BuildTool/MsbuildVersion/@EntryValue">1114112</s:Int64>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=0971ad7a_002Dc220_002D41fe_002Da938_002D82fb64cf2881/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="BotSweeperIsTriggeredAndActionAreAppliedToCustomers_DE" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;NUnit3x::6465DF9D-6CA5-406C-8A96-79EFB94D2DDE::net7.0::TestProject.TestFeatureFeature.BotSweeperIsTriggeredAndActionAreAppliedToCustomers_DE&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
 	
 	
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fcab60e1_002Da6fb_002D4cc6_002D88a6_002Dbfa70007ac04/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="BotSweeperIsTriggeredAndActionAreAppliedToCustomers_DE #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;NUnit3x::6465DF9D-6CA5-406C-8A96-79EFB94D2DDE::net7.0::TestProject.TestFeatureFeature.BotSweeperIsTriggeredAndActionAreAppliedToCustomers_DE&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	

@@ -12,4 +12,9 @@
       <PackageReference Include="Reqnroll.CustomPlugin" Version="2.2.1" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Include the .props file in the package -->
+        <None Include="build\VariantsPlugin.props" Pack="true" PackagePath="build\" />
+    </ItemGroup>
+
 </Project>

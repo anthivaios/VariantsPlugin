@@ -10,31 +10,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1"/>
-        <PackageReference Include="NUnit" Version="3.13.3"/>
-        <PackageReference Include="NUnit3TestAdapter" Version="4.4.2"/>
-        <PackageReference Include="NUnit.Analyzers" Version="3.6.1"/>
-        <PackageReference Include="coverlet.collector" Version="3.2.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.1" />
+        <PackageReference Include="NUnit" Version="3.13.3" />
+        <PackageReference Include="NUnit3TestAdapter" Version="4.4.2" />
+        <PackageReference Include="NUnit.Analyzers" Version="3.6.1" />
+        <PackageReference Include="coverlet.collector" Version="3.2.0" />
         <PackageReference Include="Reqnroll" Version="2.2.1" />
         <PackageReference Include="Reqnroll.NUnit" Version="2.2.1" />
+        
+        
     </ItemGroup>
 
     
 
-    <ItemGroup>
-        <None Include="TestFeature.feature">
-            <LastGenOutput>TestFeature.feature.cs</LastGenOutput>
-        </None>
-    </ItemGroup>
-
-    
-    <ItemGroup>
-      <ProjectReference Include="..\VariantsPlugin\VariantsPlugin.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ReqnrollGeneratorPlugins Include="$(OutputPath)..\..\..\..\VariantsPlugin\bin\Debug\netstandard2.0\VariantsPlugin.dll" />
-    </ItemGroup>
     
 
 </Project>

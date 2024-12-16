@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "P1J35ABj97YP2nPkYxlTH5zQO75S8n5XGU/RP2Zf8kjQbzI8e6GZT2GhkmqVA17MTflOOKxiS1ZBL6XvvPm4fw==",
+  "dgSpecHash": "iO801jYW5ZpEDI4oNvaObRMseVSATB9zhDghDrJbb6DnoFbcQopyyWEsamomtoFH7BHMEXCo8E0Xc/+xvzX7EQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\a.thivaios\\RiderProjects\\TestProject\\TestProject\\TestProject.csproj",
   "expectedPackageFiles": [
@@ -21,11 +21,9 @@
     "C:\\Users\\a.thivaios\\.nuget\\packages\\nunit.analyzers\\3.6.1\\nunit.analyzers.3.6.1.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\nunit3testadapter\\4.4.2\\nunit3testadapter.4.4.2.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\reqnroll\\2.2.1\\reqnroll.2.2.1.nupkg.sha512",
-    "C:\\Users\\a.thivaios\\.nuget\\packages\\reqnroll.customplugin\\2.2.1\\reqnroll.customplugin.2.2.1.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\reqnroll.nunit\\2.2.1\\reqnroll.nunit.2.2.1.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\reqnroll.tools.msbuild.generation\\2.2.1\\reqnroll.tools.msbuild.generation.2.2.1.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\specflow.internal.json\\1.0.8\\specflow.internal.json.1.0.8.nupkg.sha512",
-    "C:\\Users\\a.thivaios\\.nuget\\packages\\system.codedom\\8.0.0\\system.codedom.8.0.0.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.io\\4.3.0\\system.io.4.3.0.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.reflection\\4.3.0\\system.reflection.4.3.0.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.reflection.metadata\\1.6.0\\system.reflection.metadata.1.6.0.nupkg.sha512",
@@ -35,8 +33,7 @@
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.text.encoding\\4.3.0\\system.text.encoding.4.3.0.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
     "C:\\Users\\a.thivaios\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512",
-    "C:\\Users\\a.thivaios\\.nuget\\packages\\system.threading.tasks\\4.3.0\\system.threading.tasks.4.3.0.nupkg.sha512",
-    "C:\\Users\\a.thivaios\\.nuget\\packages\\variantsplugin\\1.0.0\\variantsplugin.1.0.0.nupkg.sha512"
+    "C:\\Users\\a.thivaios\\.nuget\\packages\\system.threading.tasks\\4.3.0\\system.threading.tasks.4.3.0.nupkg.sha512"
   ],
   "logs": []
 }

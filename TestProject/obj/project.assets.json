@@ -442,25 +442,6 @@
           "build/Reqnroll.targets": {}
         }
       },
-      "Reqnroll.CustomPlugin/2.2.1": {
-        "type": "package",
-        "dependencies": {
-          "Reqnroll": "[2.2.1]",
-          "System.CodeDom": "8.0.0"
-        },
-        "compile": {
-          "lib/netstandard2.0/Gherkin.dll": {},
-          "lib/netstandard2.0/Reqnroll.Generator.dll": {},
-          "lib/netstandard2.0/Reqnroll.Parser.dll": {},
-          "lib/netstandard2.0/Reqnroll.Utils.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/Gherkin.dll": {},
-          "lib/netstandard2.0/Reqnroll.Generator.dll": {},
-          "lib/netstandard2.0/Reqnroll.Parser.dll": {},
-          "lib/netstandard2.0/Reqnroll.Utils.dll": {}
-        }
-      },
       "Reqnroll.NUnit/2.2.1": {
         "type": "package",
         "dependencies": {
@@ -499,22 +480,6 @@
         },
         "runtime": {
           "lib/netstandard2.0/SpecFlow.Internal.Json.dll": {}
-        }
-      },
-      "System.CodeDom/8.0.0": {
-        "type": "package",
-        "compile": {
-          "lib/net7.0/System.CodeDom.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net7.0/System.CodeDom.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "buildTransitive/net6.0/_._": {}
         }
       },
       "System.IO/4.3.0": {
@@ -666,20 +631,6 @@
           "ref/netstandard1.3/System.Threading.Tasks.dll": {
             "related": ".xml"
           }
-        }
-      },
-      "VariantsPlugin/1.0.0": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v2.0",
-        "dependencies": {
-          "Newtonsoft.Json": "13.0.1",
-          "Reqnroll.CustomPlugin": "2.2.1"
-        },
-        "compile": {
-          "bin/placeholder/VariantsPlugin.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VariantsPlugin.dll": {}
         }
       }
     }
@@ -1349,26 +1300,6 @@
         "reqnroll.nuspec"
       ]
     },
-    "Reqnroll.CustomPlugin/2.2.1": {
-      "sha512": "ZULpUpGp22u7o2tbOfYPPpvnxU9va8sNkBpUJ42dIoEiyvHfocZsC1poW526RgULpunhjK77XOq8qt1wNMgfAg==",
-      "type": "package",
-      "path": "reqnroll.customplugin/2.2.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE",
-        "Licenses/Cucumber.CucumberExpressions-LICENSE-MIT.txt",
-        "Licenses/Gherkin-LICENSE-MIT.txt",
-        "Licenses/SpecFlow.Internal.Json-LICENSE-MIT.txt",
-        "images/reqnroll-icon.png",
-        "lib/netstandard2.0/Gherkin.dll",
-        "lib/netstandard2.0/Reqnroll.Generator.dll",
-        "lib/netstandard2.0/Reqnroll.Parser.dll",
-        "lib/netstandard2.0/Reqnroll.Utils.dll",
-        "reqnroll.customplugin.2.2.1.nupkg.sha512",
-        "reqnroll.customplugin.nuspec"
-      ]
-    },
     "Reqnroll.NUnit/2.2.1": {
       "sha512": "xNEj6ZNKyglOV0nk11082HJMVSSgTScpRGBEyC38o4CaRgg6SwHXf43i2wUfy423mFsHQ449+QRiw8UlHYTN2g==",
       "type": "package",
@@ -1563,35 +1494,6 @@
         "lib/netstandard2.0/SpecFlow.Internal.Json.dll",
         "specflow.internal.json.1.0.8.nupkg.sha512",
         "specflow.internal.json.nuspec"
-      ]
-    },
-    "System.CodeDom/8.0.0": {
-      "sha512": "WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q==",
-      "type": "package",
-      "path": "system.codedom/8.0.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "LICENSE.TXT",
-        "THIRD-PARTY-NOTICES.TXT",
-        "buildTransitive/net461/System.CodeDom.targets",
-        "buildTransitive/net462/_._",
-        "buildTransitive/net6.0/_._",
-        "buildTransitive/netcoreapp2.0/System.CodeDom.targets",
-        "lib/net462/System.CodeDom.dll",
-        "lib/net462/System.CodeDom.xml",
-        "lib/net6.0/System.CodeDom.dll",
-        "lib/net6.0/System.CodeDom.xml",
-        "lib/net7.0/System.CodeDom.dll",
-        "lib/net7.0/System.CodeDom.xml",
-        "lib/net8.0/System.CodeDom.dll",
-        "lib/net8.0/System.CodeDom.xml",
-        "lib/netstandard2.0/System.CodeDom.dll",
-        "lib/netstandard2.0/System.CodeDom.xml",
-        "system.codedom.8.0.0.nupkg.sha512",
-        "system.codedom.nuspec",
-        "useSharedDesignerContext.txt"
       ]
     },
     "System.IO/4.3.0": {
@@ -2201,11 +2103,6 @@
         "system.threading.tasks.4.3.0.nupkg.sha512",
         "system.threading.tasks.nuspec"
       ]
-    },
-    "VariantsPlugin/1.0.0": {
-      "type": "project",
-      "path": "../VariantsPlugin/VariantsPlugin.csproj",
-      "msbuildProject": "../VariantsPlugin/VariantsPlugin.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -2216,7 +2113,6 @@
       "NUnit3TestAdapter >= 4.4.2",
       "Reqnroll >= 2.2.1",
       "Reqnroll.NUnit >= 2.2.1",
-      "VariantsPlugin >= 1.0.0",
       "coverlet.collector >= 3.2.0"
     ]
   },
@@ -2241,7 +2137,6 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "C:\\Users\\a.thivaios\\RiderProjects\\TestProject\\nupkgs": {},
         "C:\\local-nuget-source": {},
         "https://api.nuget.org/v3/index.json": {},
         "https://nuget.kaizengaming.eu/v3/index.json": {},
@@ -2250,11 +2145,7 @@
       "frameworks": {
         "net7.0": {
           "targetAlias": "net7.0",
-          "projectReferences": {
-            "C:\\Users\\a.thivaios\\RiderProjects\\TestProject\\VariantsPlugin\\VariantsPlugin.csproj": {
-              "projectPath": "C:\\Users\\a.thivaios\\RiderProjects\\TestProject\\VariantsPlugin\\VariantsPlugin.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {

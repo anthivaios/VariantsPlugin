@@ -1,0 +1,8 @@
+﻿<Project>
+    <ItemGroup>
+        <ReqnrollGeneratorPlugins Include="$(MSBuildThisFileDirectory)..\lib\netstandard2.0\VariantsPlugin.dll" />
+    </ItemGroup>
+    <Target Name="VerifyPluginPath" AfterTargets="Build">
+        <Message Text="ReqnrollGeneratorPlugins Path: @(ReqnrollGeneratorPlugins)" Importance="high" />
+    </Target>
+</Project>

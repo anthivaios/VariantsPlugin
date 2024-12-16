@@ -14,7 +14,6 @@
           "NUnit3TestAdapter": "4.4.2",
           "Reqnroll": "2.2.1",
           "Reqnroll.NUnit": "2.2.1",
-          "VariantsPlugin": "1.0.0",
           "coverlet.collector": "3.2.0"
         },
         "runtime": {
@@ -365,26 +364,6 @@
           }
         }
       },
-      "Reqnroll.CustomPlugin/2.2.1": {
-        "dependencies": {
-          "Reqnroll": "2.2.1",
-          "System.CodeDom": "8.0.0"
-        },
-        "runtime": {
-          "lib/netstandard2.0/Reqnroll.Generator.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
-          },
-          "lib/netstandard2.0/Reqnroll.Parser.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
-          },
-          "lib/netstandard2.0/Reqnroll.Utils.dll": {
-            "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.0.0.0"
-          }
-        }
-      },
       "Reqnroll.NUnit/2.2.1": {
         "dependencies": {
           "NUnit": "3.13.3",
@@ -408,14 +387,6 @@
           "lib/netstandard2.0/SpecFlow.Internal.Json.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.8.28882"
-          }
-        }
-      },
-      "System.CodeDom/8.0.0": {
-        "runtime": {
-          "lib/net7.0/System.CodeDom.dll": {
-            "assemblyVersion": "8.0.0.0",
-            "fileVersion": "8.0.23.53103"
           }
         }
       },
@@ -497,15 +468,6 @@
           "Microsoft.NETCore.Platforms": "1.1.0",
           "Microsoft.NETCore.Targets": "1.1.0",
           "System.Runtime": "4.3.0"
-        }
-      },
-      "VariantsPlugin/1.0.0": {
-        "dependencies": {
-          "Newtonsoft.Json": "13.0.1",
-          "Reqnroll.CustomPlugin": "2.2.1"
-        },
-        "runtime": {
-          "VariantsPlugin.dll": {}
         }
       }
     }
@@ -635,13 +597,6 @@
       "path": "reqnroll/2.2.1",
       "hashPath": "reqnroll.2.2.1.nupkg.sha512"
     },
-    "Reqnroll.CustomPlugin/2.2.1": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-ZULpUpGp22u7o2tbOfYPPpvnxU9va8sNkBpUJ42dIoEiyvHfocZsC1poW526RgULpunhjK77XOq8qt1wNMgfAg==",
-      "path": "reqnroll.customplugin/2.2.1",
-      "hashPath": "reqnroll.customplugin.2.2.1.nupkg.sha512"
-    },
     "Reqnroll.NUnit/2.2.1": {
       "type": "package",
       "serviceable": true,
@@ -662,13 +617,6 @@
       "sha512": "sha512-lVCC/Rie7N5rFoc7YxPS0nneLfsWSTIMMlkndwxhaD8MxBp3Bsv1HeiVjVwXCjWaQeoqZcvIy52fF5Xit00ZLw==",
       "path": "specflow.internal.json/1.0.8",
       "hashPath": "specflow.internal.json.1.0.8.nupkg.sha512"
-    },
-    "System.CodeDom/8.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-WTlRjL6KWIMr/pAaq3rYqh0TJlzpouaQ/W1eelssHgtlwHAH25jXTkUphTYx9HaIIf7XA6qs/0+YhtLEQRkJ+Q==",
-      "path": "system.codedom/8.0.0",
-      "hashPath": "system.codedom.8.0.0.nupkg.sha512"
     },
     "System.IO/4.3.0": {
       "type": "package",
@@ -739,11 +687,6 @@
       "sha512": "sha512-LbSxKEdOUhVe8BezB/9uOGGppt+nZf6e1VFyw6v3DN6lqitm0OSn2uXMOdtP0M3W4iMcqcivm2J6UgqiwwnXiA==",
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
-    },
-    "VariantsPlugin/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }

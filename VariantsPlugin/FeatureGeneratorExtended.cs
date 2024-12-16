@@ -373,6 +373,7 @@ namespace VariantsPlugin
             foreach (var keyValuePair in paramToIdentifier)
                 method.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string), keyValuePair.Value));
             method.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string[]), "exampleTags"));
+            _codeDomHelper.MarkCodeMemberMethodAsAsync(method);
             return method;
         }
 

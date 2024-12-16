@@ -46,22 +46,11 @@ namespace TestProject
         [NUnit.Framework.SetUpAttribute()]
         public async System.Threading.Tasks.Task TestInitializeAsync()
         {
-            if ((testRunner == null))
+            testRunner = global::Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(featureHint: featureInfo);
+            if (((testRunner.FeatureContext != null) 
+                        && (testRunner.FeatureContext.FeatureInfo.Equals(featureInfo) == false)))
             {
-                testRunner = global::Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(featureHint: featureInfo);
-                if ((testRunner == null))
-                {
-                    throw new System.InvalidOperationException("Failed to initialize testRunner. Ensure TestRunnerManager is properly configured." +
-                            "");
-                }
-            }
-            if ((testRunner.FeatureContext != null))
-            {
-                if (((testRunner.FeatureContext.FeatureInfo != null) 
-                            && (testRunner.FeatureContext.FeatureInfo.Equals(featureInfo) == false)))
-                {
-                    await testRunner.OnFeatureEndAsync();
-                }
+                await testRunner.OnFeatureEndAsync();
             }
             if ((testRunner.FeatureContext == null))
             {
@@ -72,12 +61,8 @@ namespace TestProject
         [NUnit.Framework.TearDownAttribute()]
         public async System.Threading.Tasks.Task TestTearDownAsync()
         {
-            if ((testRunner.ScenarioContext != null))
-            {
-                await testRunner.OnScenarioEndAsync();
-            }
+            await testRunner.OnScenarioEndAsync();
             global::Reqnroll.TestRunnerManager.ReleaseTestRunner(testRunner);
-            testRunner = null;
         }
         
         public void ScenarioInitialize(global::Reqnroll.ScenarioInfo scenarioInfo)
@@ -97,19 +82,19 @@ namespace TestProject
         }
         
         [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Bot Sweeper is triggered and action are applied to customers: _GR")]
-        [NUnit.Framework.CategoryAttribute("Operator:GR")]
-        public async System.Threading.Tasks.Task BotSweeperIsTriggeredAndActionAreAppliedToCustomers_GR()
+        [NUnit.Framework.DescriptionAttribute("Bot Sweeper is triggered and action are applied to customers")]
+        [NUnit.Framework.TestCaseAttribute("1", "3", null)]
+        [NUnit.Framework.TestCaseAttribute("2", "4", null)]
+        public async System.Threading.Tasks.Task BotSweeperIsTriggeredAndActionAreAppliedToCustomers(string test, string test2, string[] exampleTags)
         {
-            string[] tagsOfScenario = new string[] {
-                    "Operator:GR",
-                    "Operator:DE"};
+            string[] tagsOfScenario = exampleTags;
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
+            argumentsOfScenario.Add("Test", test);
+            argumentsOfScenario.Add("Test2", test2);
             global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Bot Sweeper is triggered and action are applied to customers", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 3
+#line 2
     this.ScenarioInitialize(scenarioInfo);
 #line hidden
-            testRunner.ScenarioContext.Add("Operator", "GR");
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
             {
                 testRunner.SkipScenario();
@@ -117,48 +102,14 @@ namespace TestProject
             else
             {
                 await this.ScenarioStartAsync();
-#line 4
-        await testRunner.GivenAsync("there is a candidate account for bot sweeper", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 5
-        await testRunner.WhenAsync("the bot sweeper is triggered through api", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
-#line 6
-        await testRunner.ThenAsync("action of bot sweeper are applied to the account", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
-#line hidden
-            }
-            await this.ScenarioCleanupAsync();
-        }
-        
-        [NUnit.Framework.TestAttribute()]
-        [NUnit.Framework.DescriptionAttribute("Bot Sweeper is triggered and action are applied to customers: _DE")]
-        [NUnit.Framework.CategoryAttribute("Operator:DE")]
-        public async System.Threading.Tasks.Task BotSweeperIsTriggeredAndActionAreAppliedToCustomers_DE()
-        {
-            string[] tagsOfScenario = new string[] {
-                    "Operator:GR",
-                    "Operator:DE"};
-            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Bot Sweeper is triggered and action are applied to customers", null, tagsOfScenario, argumentsOfScenario, featureTags);
 #line 3
-    this.ScenarioInitialize(scenarioInfo);
-#line hidden
-            testRunner.ScenarioContext.Add("Operator", "DE");
-            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
-            {
-                testRunner.SkipScenario();
-            }
-            else
-            {
-                await this.ScenarioStartAsync();
-#line 4
         await testRunner.GivenAsync("there is a candidate account for bot sweeper", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 5
-        await testRunner.WhenAsync("the bot sweeper is triggered through api", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line 4
+        await testRunner.WhenAsync(string.Format("the bot sweeper is triggered through api {0}", test2), ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
 #line hidden
-#line 6
-        await testRunner.ThenAsync("action of bot sweeper are applied to the account", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line 5
+        await testRunner.ThenAsync(string.Format("action of bot sweeper are applied to the account {0}", test), ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
