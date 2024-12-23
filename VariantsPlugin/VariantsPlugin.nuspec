@@ -2,7 +2,7 @@
 <package>
     <metadata>
         <id>VariantsPlugin</id>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
         <authors>a.thivaios</authors>
         <description>A ReqnRoll plugin for handling variants.</description>
         <tags>ReqnRoll Plugin Variants</tags>

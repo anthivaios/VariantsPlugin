@@ -78,6 +78,14 @@ namespace VariantsPlugin
 
         public void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
+            int lastUnderscoreIndex = friendlyTestName.LastIndexOf('_');
+
+            if (lastUnderscoreIndex != -1)
+            {
+                string beforeLast = friendlyTestName.Substring(0, lastUnderscoreIndex);
+                string afterLast = friendlyTestName.Substring(lastUnderscoreIndex + 1);
+                friendlyTestName = beforeLast + afterLast;
+            }
             _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.TestAttribute");
             _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.DescriptionAttribute", friendlyTestName);
         }

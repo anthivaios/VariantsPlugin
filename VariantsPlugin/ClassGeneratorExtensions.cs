@@ -10,36 +10,36 @@ namespace VariantsPlugin
 
     public static class ClassGeneratorExtensions
     {
-        public static void AddLinePragmaInitial(this CodeDomHelper codeDomHelper, CodeTypeDeclaration testType, string sourceFile, ReqnrollConfiguration specFlowConfiguration)
+        public static void AddLinePragmaInitial(this CodeDomHelper codeDomHelper, CodeTypeDeclaration testType, string sourceFile, ReqnrollConfiguration reqnrollConfiguration)
         {
-            if (specFlowConfiguration.AllowDebugGeneratedFiles) return;
+            if (reqnrollConfiguration.AllowDebugGeneratedFiles) return;
             codeDomHelper.BindTypeToSourceFile(testType, Path.GetFileName(sourceFile));
         }
 
-        public static void AddLineDirectiveHidden(this CodeDomHelper codeDomHelper, CodeStatementCollection statements, ReqnrollConfiguration specFlowConfiguration)
+        public static void AddLineDirectiveHidden(this CodeDomHelper codeDomHelper, CodeStatementCollection statements, ReqnrollConfiguration reqnrollConfiguration)
         {
-            if (specFlowConfiguration.AllowDebugGeneratedFiles) return;
+            if (reqnrollConfiguration.AllowDebugGeneratedFiles) return;
             AddDisableSourceLinePragmaStatement(statements, codeDomHelper);
         }
 
-        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Background background, CodeStatementCollection statements, ReqnrollConfiguration specFlowConfiguration)
+        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Background background, CodeStatementCollection statements, ReqnrollConfiguration reqnrollConfiguration)
         {
-            AddLineDirective(statements, background.Location, specFlowConfiguration, codeDomHelper);
+            AddLineDirective(statements, background.Location, reqnrollConfiguration, codeDomHelper);
         }
 
-        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Scenario scenarioDefinition, CodeStatementCollection statements, ReqnrollConfiguration specFlowConfiguration)
+        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Scenario scenarioDefinition, CodeStatementCollection statements, ReqnrollConfiguration reqnrollConfiguration)
         {
-            AddLineDirective(statements, scenarioDefinition.Location, specFlowConfiguration, codeDomHelper);
+            AddLineDirective(statements, scenarioDefinition.Location, reqnrollConfiguration, codeDomHelper);
         }
 
-        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Step step, CodeStatementCollection statements, ReqnrollConfiguration specFlowConfiguration)
+        public static void AddLineDirective(this CodeDomHelper codeDomHelper, Step step, CodeStatementCollection statements, ReqnrollConfiguration reqnrollConfiguration)
         {
-            AddLineDirective(statements, step.Location, specFlowConfiguration, codeDomHelper);
+            AddLineDirective(statements, step.Location, reqnrollConfiguration, codeDomHelper);
         }
 
-        private static void AddLineDirective(CodeStatementCollection statements, Location location, ReqnrollConfiguration specFlowConfiguration, CodeDomHelper codeDomHelper)
+        private static void AddLineDirective(CodeStatementCollection statements, Location location, ReqnrollConfiguration reqnrollConfiguration, CodeDomHelper codeDomHelper)
         {
-            if (location == null || specFlowConfiguration.AllowDebugGeneratedFiles) return;
+            if (location == null || reqnrollConfiguration.AllowDebugGeneratedFiles) return;
             AddSourceLinePragmaStatement(statements, location.Line, location.Column, codeDomHelper);
         }
 

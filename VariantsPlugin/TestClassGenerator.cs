@@ -21,18 +21,18 @@ namespace VariantsPlugin
         private readonly IDecoratorRegistry _decoratorRegistry;
         private readonly IUnitTestGeneratorProvider _testGeneratorProvider;
         private readonly CodeDomHelper _codeDomHelper;
-        private readonly ReqnrollConfiguration _specFlowConfiguration;
+        private readonly ReqnrollConfiguration _reqnrollConfiguration;
         private readonly ScenarioPartHelper _scenarioPartHelper;
 
         public TestClassGenerator(IDecoratorRegistry decoratorRegistry,
             IUnitTestGeneratorProvider testGeneratorProvider, CodeDomHelper codeDomHelper,
-            ReqnrollConfiguration specFlowConfiguration)
+            ReqnrollConfiguration reqnrollConfiguration)
         {
             _decoratorRegistry = decoratorRegistry;
             _testGeneratorProvider = testGeneratorProvider;
             _codeDomHelper = codeDomHelper;
-            _specFlowConfiguration = specFlowConfiguration;
-            _scenarioPartHelper = new ScenarioPartHelper(_specFlowConfiguration, _codeDomHelper);
+            _reqnrollConfiguration = reqnrollConfiguration;
+            _scenarioPartHelper = new ScenarioPartHelper(_reqnrollConfiguration, _codeDomHelper);
         }
 
         public CodeNamespace CreateNamespace(string targetNamespace)
@@ -77,7 +77,7 @@ namespace VariantsPlugin
                 _codeDomHelper.CreateMethod(testClass),
                 document.ReqnrollFeature.HasFeatureBackground() ? _codeDomHelper.CreateMethod(testClass) : null,
                 _testGeneratorProvider.GetTraits().HasFlag(UnitTestGeneratorTraits.RowTests) &&
-                _specFlowConfiguration.AllowRowTests);
+                _reqnrollConfiguration.AllowRowTests);
         }
 
         private CodeMemberField DeclareTestRunnerMember(CodeTypeDeclaration type)
@@ -93,7 +93,7 @@ namespace VariantsPlugin
             generationContext.TestClass.IsPartial = true;
             generationContext.TestClass.TypeAttributes |= TypeAttributes.Public;
             _codeDomHelper.AddLinePragmaInitial(generationContext.TestClass, generationContext.Document.SourceFilePath,
-                _specFlowConfiguration);
+                _reqnrollConfiguration);
             _testGeneratorProvider.SetTestClass(generationContext, generationContext.Feature.Name,
                 generationContext.Feature.Description);
             _decoratorRegistry.DecorateTestClass(generationContext, out List<string> unprocessedTags);

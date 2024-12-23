@@ -18,7 +18,7 @@ namespace VariantsPlugin
     {
         private readonly IUnitTestGeneratorProvider _testGeneratorProvider;
         private readonly CodeDomHelper _codeDomHelper;
-        private readonly ReqnrollConfiguration _specFlowConfiguration;
+        private readonly ReqnrollConfiguration _reqnrollConfiguration;
         private readonly IDecoratorRegistry _decoratorRegistry;
         private int _tableCounter;
 
@@ -29,25 +29,26 @@ namespace VariantsPlugin
         private bool _setVariantToContextForTest;
         private string _variantValue;
         readonly ScenarioPartHelper _scenarioPartHelper;
+        public const string CustomGeneratedComment = "Generation customised by VariantPlugin";
         //NEW CODE END
 
         public FeatureGeneratorExtended(IUnitTestGeneratorProvider testGeneratorProvider, CodeDomHelper codeDomHelper,
-            ReqnrollConfiguration specFlowConfiguration, IDecoratorRegistry decoratorRegistry, string variantKey)
-            : base(decoratorRegistry, testGeneratorProvider, codeDomHelper, specFlowConfiguration)
+            ReqnrollConfiguration reqnrollConfiguration, IDecoratorRegistry decoratorRegistry, string variantKey)
+            : base(decoratorRegistry, testGeneratorProvider, codeDomHelper, reqnrollConfiguration)
         {
             _testGeneratorProvider = testGeneratorProvider;
             _codeDomHelper = codeDomHelper;
-            _specFlowConfiguration = specFlowConfiguration;
+            _reqnrollConfiguration = reqnrollConfiguration;
             _decoratorRegistry = decoratorRegistry;
-            _scenarioPartHelper = new ScenarioPartHelper(_specFlowConfiguration, _codeDomHelper);
+            _scenarioPartHelper = new ScenarioPartHelper(_reqnrollConfiguration, _codeDomHelper);
             _variantHelper = new VariantHelper(variantKey); //NEW CODE
         }
 
         public CodeNamespace GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
             string targetNamespace)
         {
-            var specFlowFeature = document.ReqnrollFeature;
-            testClassName = testClassName ?? $"{specFlowFeature.Name.ToIdentifier()}Feature";
+            var reqnrollFeature = document.ReqnrollFeature;
+            testClassName = testClassName ?? $"{reqnrollFeature.Name.ToIdentifier()}Feature";
             var codeNamespace = CreateNamespace(targetNamespace);
             var generationContext = CreateTestClassStructure(codeNamespace, testClassName, document);
 
@@ -65,15 +66,15 @@ namespace VariantsPlugin
 
 
             //NEW CODE START
-            var variantTags = _variantHelper.GetFeatureVariantTagValues(specFlowFeature);
-            _featureVariantTags = _variantHelper.FeatureTags(specFlowFeature);
+            var variantTags = _variantHelper.GetFeatureVariantTagValues(reqnrollFeature);
+            _featureVariantTags = _variantHelper.FeatureTags(reqnrollFeature);
 
-            if (_variantHelper.AnyScenarioHasVariantTag(specFlowFeature) && _variantHelper.FeatureHasVariantTags)
+            if (_variantHelper.AnyScenarioHasVariantTag(reqnrollFeature) && _variantHelper.FeatureHasVariantTags)
                 throw new TestGeneratorException(
                     "Variant tags were detected at feature and scenario level, please specify at one level or the other.");
             //NEW CODE END
 
-            foreach (var scenarioDefinition in GetScenarioDefinitions(specFlowFeature))
+            foreach (var scenarioDefinition in GetScenarioDefinitions(reqnrollFeature))
             {
                 if (string.IsNullOrEmpty(scenarioDefinition.Scenario.Name))
                     throw new TestGeneratorException("The scenario must have a title specified.");
@@ -105,6 +106,7 @@ namespace VariantsPlugin
             }
 
             _testGeneratorProvider.FinalizeTestClass(generationContext);
+            codeNamespace.Comments.Add(new CodeCommentStatement(new CodeComment(CustomGeneratedComment))); //NEW CODE
             return codeNamespace;
         }
 
@@ -167,16 +169,16 @@ namespace VariantsPlugin
             backgroundMethod.Name = "FeatureBackgroundAsync";
             _codeDomHelper.MarkCodeMemberMethodAsAsync(backgroundMethod);
             var background = generationContext.Feature.Background;
-            _codeDomHelper.AddLineDirective(background, backgroundMethod.Statements, _specFlowConfiguration);
+            _codeDomHelper.AddLineDirective(background, backgroundMethod.Statements, _reqnrollConfiguration);
             var statements = new List<CodeStatement>();
-            using (new SourceLineScope(_specFlowConfiguration, _codeDomHelper, statements,
+            using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statements,
                        generationContext.Document.SourceFilePath, background.Location))
             {
             }
 
             foreach (var step in background.Steps)
                 GenerateStep(generationContext, statements, step, null);
-            _codeDomHelper.AddLineDirectiveHidden(backgroundMethod.Statements, _specFlowConfiguration);
+            _codeDomHelper.AddLineDirectiveHidden(backgroundMethod.Statements, _reqnrollConfiguration);
         }
 
         private void SetupScenarioInitializeMethod(TestClassGenerationContext generationContext)
@@ -386,7 +388,7 @@ namespace VariantsPlugin
             variantName = string.IsNullOrEmpty(tag) ? variantName : $"{variantName}_{tag}";
             var testMethod = CreateTestMethod(generationContext, scenarioOutline, exampleSetTags, variantName,
                 exampleSetIdentifier);
-            _codeDomHelper.AddLineDirective(scenarioOutline, testMethod.Statements, _specFlowConfiguration);
+            _codeDomHelper.AddLineDirective(scenarioOutline, testMethod.Statements, _reqnrollConfiguration);
             var list1 = new List<CodeExpression>();
             list1.AddRange(row.Cells.Select(paramCell => new CodePrimitiveExpression(paramCell.Value))
                 .Cast<CodeExpression>().ToList());
@@ -403,7 +405,7 @@ namespace VariantsPlugin
 
             testMethod.Statements.Add(new CodeMethodInvokeExpression(new CodeThisReferenceExpression(),
                 scenatioOutlineTestMethod.Name, list1.ToArray()));
-            _codeDomHelper.AddLineDirectiveHidden(testMethod.Statements, _specFlowConfiguration);
+            _codeDomHelper.AddLineDirectiveHidden(testMethod.Statements, _reqnrollConfiguration);
             var list2 = paramToIdentifier.Select((p2i, paramIndex) =>
                 new KeyValuePair<string, string>(p2i.Key, row.Cells.ElementAt(paramIndex).Value)).ToList();
             _testGeneratorProvider.SetTestMethodAsRow(generationContext, testMethod, scenarioOutline.Name,
@@ -563,7 +565,7 @@ namespace VariantsPlugin
         {
             var statements = new List<CodeStatement>();
 
-            using (new SourceLineScope(_specFlowConfiguration, _codeDomHelper, statements,
+            using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statements,
                        generationContext.Document.SourceFilePath, scenario.Location))
             {
                 statements.Add(new CodeExpressionStatement(
@@ -598,7 +600,7 @@ namespace VariantsPlugin
 
             if (generationContext.Feature.HasFeatureBackground())
             {
-                using (new SourceLineScope(_specFlowConfiguration, _codeDomHelper, statementsWhenScenarioIsExecuted,
+                using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statementsWhenScenarioIsExecuted,
                            generationContext.Document.SourceFilePath, generationContext.Feature.Background.Location))
                 {
                     var backgroundMethodCallExpression = new CodeMethodInvokeExpression(
@@ -752,7 +754,7 @@ namespace VariantsPlugin
                 new CodePrimitiveExpression(scenarioStep.Keyword)
             };
 
-            using (new SourceLineScope(_specFlowConfiguration, _codeDomHelper, statements,
+            using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statements,
                        generationContext.Document.SourceFilePath, gherkinStep.Location))
             {
                 var expression = new CodeMethodInvokeExpression(

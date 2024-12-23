@@ -65,10 +65,10 @@ namespace VariantsPlugin
             return tagLists.Where(tagList => tagList != null).SelectMany(tagList => tagList).Concat(tags);
         }
 
-        public static ReqnrollStep AsSpecFlowStep(this Step step)
+        public static ReqnrollStep AsRecnrollStep(this Step step)
         {
-            if (step is ReqnrollStep specFlowStep) return specFlowStep;
-            throw new TestGeneratorException("The step must be a SpecFlowStep.");
+            if (step is ReqnrollStep recnrollStep) return recnrollStep;
+            throw new TestGeneratorException("The step must be a RecnrollStep.");
         }
     }
 }

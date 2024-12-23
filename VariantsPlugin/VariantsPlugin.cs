@@ -4,6 +4,7 @@ using Reqnroll.Generator.CodeDom;
 using Reqnroll.Generator.Interfaces;
 using Reqnroll.Generator.Plugins;
 using Reqnroll.Generator.UnitTestConverter;
+using Reqnroll.Generator.UnitTestProvider;
 using Reqnroll.Infrastructure;
 using Reqnroll.UnitTestProvider;
 
@@ -16,10 +17,12 @@ namespace VariantsPlugin
     {
         private string VariantKeyName = "variantkey";
         private string _variantKey;
+        private string utp;
         public void Initialize(GeneratorPluginEvents pluginEvents, GeneratorPluginParameters pluginParameters,
             UnitTestProviderConfiguration unitTestProviderConfiguration)
         {
             // Hook into generator events
+            utp = unitTestProviderConfiguration.UnitTestProvider;
             pluginEvents.CustomizeDependencies += OnCustomizeDependencies;
         }
 
@@ -33,7 +36,18 @@ namespace VariantsPlugin
             var reqnrollConfiguration = objectContainer.Resolve<ReqnrollConfiguration>();
             var configAsJObject = JObject.Parse(reqnrollConfiguration.ConfigSourceText);
             _variantKey = configAsJObject.ContainsKey(VariantKeyName)? configAsJObject.GetValue(VariantKeyName).ToString() : "Operator";
-            var generatorProvider = new NUnitProviderExtended(codeDomHelper, _variantKey);
+            
+            // Create custom unit test provider based on user defined config value
+            if (string.IsNullOrEmpty(utp))
+            {
+                var c = objectContainer.Resolve<UnitTestProviderConfiguration>();
+                utp = c.UnitTestProvider;
+
+                if (string.IsNullOrEmpty(utp))
+                    throw new Exception("Unit test provider not detected, please install as a nuget package described here: https://github.com/SpecFlowOSS/SpecFlow/wiki/SpecFlow-and-.NET-Core");
+            }
+            var generatorProvider = GetGeneratorProviderFromConfig(codeDomHelper, utp);
+                new NUnitProviderExtended(codeDomHelper, _variantKey);
             var customFeatureGenerator = new FeatureGeneratorExtended(generatorProvider, codeDomHelper,
                 reqnrollConfiguration, decoratorRegistry, _variantKey);
             
@@ -42,5 +56,12 @@ namespace VariantsPlugin
             e.ObjectContainer.RegisterInstanceAs(customFeatureGenerator);
             e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(customFeatureGeneratorProvider, "default");
         }
+        private IUnitTestGeneratorProvider GetGeneratorProviderFromConfig(CodeDomHelper codeDomHelper, string config) =>
+            config switch
+            {
+                "nunit" => new NUnitProviderExtended(codeDomHelper, _variantKey),
+                "xunit" => new XUnitProviderExtended(codeDomHelper, _variantKey),
+                _ =>  new NUnitProviderExtended(codeDomHelper, _variantKey)
+            };
     }
 }
