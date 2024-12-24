@@ -23,8 +23,7 @@
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.kaizengaming.eu/v3/index.json": {},
-          "https://www.nuget.org/api/v2/": {}
+          "https://nuget.kaizengaming.eu/v3/index.json": {}
         },
         "frameworks": {
           "net7.0": {
@@ -128,8 +127,7 @@
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {},
-          "https://nuget.kaizengaming.eu/v3/index.json": {},
-          "https://www.nuget.org/api/v2/": {}
+          "https://nuget.kaizengaming.eu/v3/index.json": {}
         },
         "frameworks": {
           "net48": {

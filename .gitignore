@@ -1,0 +1,12 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Rider ignored files
+/.idea
+# Local storage ignored files
+/.vs
+/obj
+/VariantsPlugin/bin
+/VariantsPlugin/obj
+/VariantsPlugin.UnitTests/bin
+/VariantsPlugin.UnitTests/obj

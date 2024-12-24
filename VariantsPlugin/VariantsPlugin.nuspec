@@ -4,7 +4,7 @@
         <id>VariantsPlugin</id>
         <version>1.0.1</version>
         <authors>a.thivaios</authors>
-        <description>A ReqnRoll plugin for handling variants.</description>
+        <description>Extends ReqnRoll to allow variants of a test to be run using tags</description>
         <tags>ReqnRoll Plugin Variants</tags>
         <dependencies>
             <dependency id="ReqnRoll" version="2.2.1" />
