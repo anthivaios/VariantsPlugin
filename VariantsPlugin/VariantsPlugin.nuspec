@@ -6,6 +6,12 @@
         <authors>a.thivaios</authors>
         <description>Extends ReqnRoll to allow variants of a test to be run using tags</description>
         <tags>ReqnRoll Plugin Variants</tags>
+        <projectUrl>https://github.com/anthivaios/VariantsPlugin</projectUrl>
+        <repository type="git" url="https://github.com/anthivaios/VariantsPlugin" />
+        <releaseNotes>
+            - Fixed Xunit Init and Clean up method
+            - Fixed bug of Variant values that contain single "_"
+        </releaseNotes>
         <dependencies>
             <dependency id="ReqnRoll" version="2.2.1" />
         </dependencies>

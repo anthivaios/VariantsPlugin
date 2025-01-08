@@ -285,7 +285,7 @@ namespace VariantsPlugin
 
         public virtual void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
-            friendlyTestName = friendlyTestName.Replace("_", "");
+            friendlyTestName = friendlyTestName.Replace("__", "");
             _codeDomHelper.AddAttribute(testMethod, FACT_ATTRIBUTE, new CodeAttributeArgument("DisplayName", new CodePrimitiveExpression(friendlyTestName)));
 
             SetProperty(testMethod, FEATURE_TITLE_PROPERTY_NAME, generationContext.Feature.Name);
@@ -294,9 +294,9 @@ namespace VariantsPlugin
 
         public virtual void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
-            var variantValue = testMethod.Name.Split('_').Last().ToLower();
-            var filteredCategories = scenarioCategories.Where(a => a.StartsWith(_variantKey) && !a.EndsWith(variantValue));
-            foreach (string str in scenarioCategories.Except(filteredCategories))
+            var variantValue = testMethod.Name.Split(new []{"__"}, StringSplitOptions.None).Last();
+            var filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.EndsWith(variantValue));
+            foreach (string str in filteredCategories)
             {
                 SetProperty(testMethod, "Category", str);
             }

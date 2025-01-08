@@ -78,12 +78,12 @@ namespace VariantsPlugin
 
         public void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
-            int lastUnderscoreIndex = friendlyTestName.LastIndexOf('_');
+            int lastUnderscoreIndex = friendlyTestName.LastIndexOf("__", StringComparison.Ordinal);
 
             if (lastUnderscoreIndex != -1)
             {
                 string beforeLast = friendlyTestName.Substring(0, lastUnderscoreIndex);
-                string afterLast = friendlyTestName.Substring(lastUnderscoreIndex + 1);
+                string afterLast = friendlyTestName.Substring(lastUnderscoreIndex + 2);
                 friendlyTestName = beforeLast + afterLast;
             }
             _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.TestAttribute");
@@ -93,7 +93,7 @@ namespace VariantsPlugin
         public void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
             // Remove categories that are not the current variant
-            _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.EndsWith(testMethod.Name.Split('_').Last()));
+            _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.EndsWith(testMethod.Name.Split(new[] {"__"}, StringSplitOptions.None).Last()));
             _codeDomHelper.AddAttributeForEachValue(testMethod, "NUnit.Framework.CategoryAttribute", _filteredCategories);
         }
 

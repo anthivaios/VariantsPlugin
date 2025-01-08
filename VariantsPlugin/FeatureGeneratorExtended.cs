@@ -429,7 +429,7 @@ namespace VariantsPlugin
             string variantName = null;
             if (!string.IsNullOrEmpty(tag))
             {
-                variantName = $"_{tag}";
+                variantName = $"__{tag}";
                 _setVariantToContextForTest = true;
                 _variantValue = tag;
             }
@@ -843,8 +843,8 @@ namespace VariantsPlugin
 
             var variantNameIdentifier = variantName.ToIdentifier().TrimStart('_');
             methodName = string.IsNullOrEmpty(exampleSetIdentifier)
-                ? $"{methodName}_{variantNameIdentifier}"
-                : $"{methodName}_{exampleSetIdentifier}_{variantNameIdentifier}";
+                ? $"{methodName}__{variantNameIdentifier}"
+                : $"{methodName}_{exampleSetIdentifier}__{variantNameIdentifier}";
 
             return methodName;
         }
