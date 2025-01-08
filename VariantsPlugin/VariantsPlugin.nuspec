@@ -2,7 +2,7 @@
 <package>
     <metadata>
         <id>VariantsPlugin</id>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
         <authors>a.thivaios</authors>
         <description>Extends ReqnRoll to allow variants of a test to be run using tags</description>
         <tags>ReqnRoll Plugin Variants</tags>

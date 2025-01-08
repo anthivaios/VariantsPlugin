@@ -153,89 +153,76 @@ namespace VariantsPlugin
             // Mark the method as async
             _codeDomHelper.MarkCodeMemberMethodAsAsync(initializeMethod);
 
-            // Add the [NUnit.Framework.SetUpAttribute()]
-            _codeDomHelper.AddAttribute(initializeMethod, "NUnit.Framework.SetUpAttribute");
+            _testGeneratorProvider.SetTestInitializeMethod(generationContext);
 
-            // Define the testRunner field
-            var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
+             var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
 
-            // Add: if (testRunner == null)
             var getTestRunnerExpression = new CodeMethodInvokeExpression(
                 new CodeTypeReferenceExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(TestRunnerManager))),
                 nameof(TestRunnerManager.GetTestRunnerForAssembly),
-                _codeDomHelper.CreateOptionalArgumentExpression(
-                    "featureHint",
+                _codeDomHelper.CreateOptionalArgumentExpression("featureHint", 
                     new CodeVariableReferenceExpression(GeneratorConstants.FEATUREINFO_FIELD)));
-            var initializeTestRunnerStatement = new CodeConditionStatement(
-                new CodeBinaryOperatorExpression(
+
+            initializeMethod.Statements.Add(
+                new CodeAssignStatement(
                     testRunnerField,
-                    CodeBinaryOperatorType.IdentityEquality,
-                    new CodePrimitiveExpression(null)),
-                new CodeStatement[]
-                {
-                    new CodeAssignStatement(testRunnerField, getTestRunnerExpression),
-                    new CodeConditionStatement(
-                        new CodeBinaryOperatorExpression(
-                            testRunnerField,
-                            CodeBinaryOperatorType.IdentityEquality,
-                            new CodePrimitiveExpression(null)),
-                        new CodeThrowExceptionStatement(
-                            new CodeObjectCreateExpression(
-                                typeof(InvalidOperationException),
-                                new CodePrimitiveExpression(
-                                    "Failed to initialize testRunner. Ensure TestRunnerManager is properly configured."))))
-                });
+                    getTestRunnerExpression));
 
-            initializeMethod.Statements.Add(initializeTestRunnerStatement);
 
-            // Add: if (testRunner.FeatureContext != null)
-            var featureContextExpression = new CodePropertyReferenceExpression(testRunnerField, "FeatureContext");
-            var featureInfoExpression = new CodePropertyReferenceExpression(featureContextExpression, "FeatureInfo");
-            var onFeatureEndAsyncExpression =
-                new CodeMethodInvokeExpression(testRunnerField, nameof(ITestRunner.OnFeatureEndAsync));
+            // "Finish" current feature if needed
+
+            var featureContextExpression = new CodePropertyReferenceExpression(
+                testRunnerField,
+                "FeatureContext");
+
+            var onFeatureEndAsyncExpression = new CodeMethodInvokeExpression(
+                testRunnerField,
+                nameof(ITestRunner.OnFeatureEndAsync));
             _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(onFeatureEndAsyncExpression);
 
-            var featureContextCheckStatement = new CodeConditionStatement(
-                new CodeBinaryOperatorExpression(
-                    featureContextExpression,
-                    CodeBinaryOperatorType.IdentityInequality,
-                    new CodePrimitiveExpression(null)),
-                new CodeStatement[]
-                {
-                    new CodeConditionStatement(
+            //if (testRunner.FeatureContext != null && !testRunner.FeatureContext.FeatureInfo.Equals(featureInfo))
+            //  await testRunner.OnFeatureEndAsync(); // finish if different
+            initializeMethod.Statements.Add(
+                new CodeConditionStatement(
+                    new CodeBinaryOperatorExpression(
                         new CodeBinaryOperatorExpression(
-                            new CodeBinaryOperatorExpression(
-                                featureInfoExpression,
-                                CodeBinaryOperatorType.IdentityInequality,
-                                new CodePrimitiveExpression(null)),
-                            CodeBinaryOperatorType.BooleanAnd,
-                            new CodeBinaryOperatorExpression(
-                                new CodeMethodInvokeExpression(
-                                    featureInfoExpression,
-                                    nameof(object.Equals),
-                                    new CodeVariableReferenceExpression(GeneratorConstants.FEATUREINFO_FIELD)),
-                                CodeBinaryOperatorType.ValueEquality,
-                                new CodePrimitiveExpression(false))),
-                        new CodeExpressionStatement(onFeatureEndAsyncExpression))
-                });
+                            featureContextExpression,
+                            CodeBinaryOperatorType.IdentityInequality,
+                            new CodePrimitiveExpression(null)),
+                        CodeBinaryOperatorType.BooleanAnd,
+                        new CodeBinaryOperatorExpression(
+                            new CodeMethodInvokeExpression(
+                                new CodePropertyReferenceExpression(
+                                    featureContextExpression,
+                                    "FeatureInfo"),
+                                nameof(object.Equals),
+                                new CodeVariableReferenceExpression(GeneratorConstants.FEATUREINFO_FIELD)),
+                            CodeBinaryOperatorType.ValueEquality,
+                            new CodePrimitiveExpression(false))),
+                    new CodeExpressionStatement(
+                        onFeatureEndAsyncExpression)));
 
-            initializeMethod.Statements.Add(featureContextCheckStatement);
 
-            // Add: if (testRunner.FeatureContext == null)
+            // "Start" the feature if needed
+
+            //if (testRunner.FeatureContext == null) {
+            //  await testRunner.OnFeatureStartAsync(featureInfo);
+            //}
+
             var onFeatureStartExpression = new CodeMethodInvokeExpression(
                 testRunnerField,
                 nameof(ITestRunner.OnFeatureStartAsync),
                 new CodeVariableReferenceExpression(GeneratorConstants.FEATUREINFO_FIELD));
             _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(onFeatureStartExpression);
 
-            var featureContextNullCheckStatement = new CodeConditionStatement(
-                new CodeBinaryOperatorExpression(
-                    featureContextExpression,
-                    CodeBinaryOperatorType.IdentityEquality,
-                    new CodePrimitiveExpression(null)),
-                new CodeExpressionStatement(onFeatureStartExpression));
-
-            initializeMethod.Statements.Add(featureContextNullCheckStatement);
+            initializeMethod.Statements.Add(
+                new CodeConditionStatement(
+                    new CodeBinaryOperatorExpression(
+                        featureContextExpression,
+                        CodeBinaryOperatorType.IdentityEquality,
+                        new CodePrimitiveExpression(null)),
+                    new CodeExpressionStatement(
+                        onFeatureStartExpression)));
         }
 
         public void SetupTestCleanupMethod(TestClassGenerationContext generationContext)
@@ -247,44 +234,26 @@ namespace VariantsPlugin
             // Mark the method as async
             _codeDomHelper.MarkCodeMemberMethodAsAsync(testCleanupMethod);
 
-            // Add the [NUnit.Framework.TearDownAttribute()]
-            _codeDomHelper.AddAttribute(testCleanupMethod, "NUnit.Framework.TearDownAttribute");
+            _testGeneratorProvider.SetTestCleanupMethod(generationContext);
 
-            // Define the testRunner field
             var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
-
-            // Add: if (testRunner?.ScenarioContext != null)
-            var scenarioContextProperty = new CodePropertyReferenceExpression(testRunnerField, "ScenarioContext");
-            var conditionExpression = new CodeBinaryOperatorExpression(
-                scenarioContextProperty,
-                CodeBinaryOperatorType.IdentityInequality,
-                new CodePrimitiveExpression(null));
-
-            // Inside the if: await testRunner.OnScenarioEndAsync();
-            var onScenarioEndAsyncExpression = new CodeMethodInvokeExpression(
+            
+            //await testRunner.OnScenarioEndAsync();
+            var expression = new CodeMethodInvokeExpression(
                 testRunnerField,
                 nameof(ITestRunner.OnScenarioEndAsync));
-            _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(onScenarioEndAsyncExpression);
 
-            var conditionStatement = new CodeConditionStatement(
-                conditionExpression,
-                new CodeExpressionStatement(onScenarioEndAsyncExpression));
+            _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(expression);
 
-            testCleanupMethod.Statements.Add(conditionStatement);
+            testCleanupMethod.Statements.Add(expression);
 
-            // Add: TestRunnerManager.ReleaseTestRunner(testRunner);
-            var releaseTestRunnerExpression = new CodeMethodInvokeExpression(
-                new CodeTypeReferenceExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(TestRunnerManager))),
-                nameof(TestRunnerManager.ReleaseTestRunner),
-                testRunnerField);
-
-            testCleanupMethod.Statements.Add(new CodeExpressionStatement(releaseTestRunnerExpression));
-
-            // Add: testRunner = null;
+            // "Release" the TestRunner, so that other threads can pick it up
+            // TestRunnerManager.ReleaseTestRunner(testRunner);
             testCleanupMethod.Statements.Add(
-                new CodeAssignStatement(
-                    testRunnerField,
-                    new CodePrimitiveExpression(null)));
+                new CodeMethodInvokeExpression(
+                    new CodeTypeReferenceExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(TestRunnerManager))),
+                    nameof(TestRunnerManager.ReleaseTestRunner),
+                    testRunnerField));
         }
 
         public void SetupTestClassCleanupMethod(TestClassGenerationContext generationContext)
