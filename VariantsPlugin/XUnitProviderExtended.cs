@@ -12,7 +12,7 @@ using Reqnroll.Generator.UnitTestProvider;
 
 namespace VariantsPlugin
 {
-    public class XUnitProviderExtended : IUnitTestGeneratorProvider
+    public class XUnitProviderExtended : XUnit2TestGeneratorProvider
     {
         private CodeTypeDeclaration _currentFixtureDataTypeDeclaration = null;
         private readonly CodeTypeReference _objectCodeTypeReference = new(typeof(object));
@@ -37,12 +37,19 @@ namespace VariantsPlugin
         protected internal const string IGNORE_TEST_CLASS = "IgnoreTestClass";
         protected internal const string NONPARALLELIZABLE_COLLECTION_NAME = "ReqnrollNonParallelizableFeatures";
         protected internal const string IASYNCLIFETIME_INTERFACE = "Xunit.IAsyncLifetime";
+        private readonly XUnit2TestGeneratorProvider _baseProvider;
         private readonly CodeDomHelper _codeDomHelper;
         private readonly string _variantKey;
         private IEnumerable<string> _filteredCategories;
 
-        public XUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey)
+        public XUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey) : base(codeDomHelper)
         {
+            _codeDomHelper = codeDomHelper;
+            _variantKey = variantKey;
+        }
+        public XUnitProviderExtended(XUnit2TestGeneratorProvider baseProvider, CodeDomHelper codeDomHelper, string variantKey) : base(codeDomHelper)
+        {
+            _baseProvider = baseProvider;
             _codeDomHelper = codeDomHelper;
             _variantKey = variantKey;
         }
@@ -71,7 +78,9 @@ namespace VariantsPlugin
 
         public virtual void SetRowTest(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string scenarioTitle)
         {
-            scenarioTitle = scenarioTitle.Replace("_", "");
+            scenarioTitle = scenarioTitle.Replace("__", "");
+            _baseProvider.SetRowTest(generationContext, testMethod, scenarioTitle);
+            
             _codeDomHelper.AddAttribute(testMethod, THEORY_ATTRIBUTE, new CodeAttributeArgument("DisplayName", new CodePrimitiveExpression(scenarioTitle)));
 
             SetProperty(testMethod, FEATURE_TITLE_PROPERTY_NAME, generationContext.Feature.Name);
@@ -283,23 +292,17 @@ namespace VariantsPlugin
             disposeMethod.Statements.Add(expression);
         }
 
-        public virtual void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
+        public override void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
             friendlyTestName = friendlyTestName.Replace("__", "");
-            _codeDomHelper.AddAttribute(testMethod, FACT_ATTRIBUTE, new CodeAttributeArgument("DisplayName", new CodePrimitiveExpression(friendlyTestName)));
-
-            SetProperty(testMethod, FEATURE_TITLE_PROPERTY_NAME, generationContext.Feature.Name);
-            SetDescription(testMethod, friendlyTestName);
+            _baseProvider.SetTestMethod(generationContext, testMethod, friendlyTestName);
         }
 
-        public virtual void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
+        public override void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
             var variantValue = testMethod.Name.Split(new []{"__"}, StringSplitOptions.None).Last();
-            var filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.EndsWith(variantValue));
-            foreach (string str in filteredCategories)
-            {
-                SetProperty(testMethod, "Category", str);
-            }
+            var filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.ToLower().Equals($"{_variantKey.ToLower()}:{variantValue.ToLower()}"));
+            _baseProvider.SetTestMethodCategories(generationContext, testMethod, filteredCategories);
         }
 
         public void SetTestInitializeMethod(TestClassGenerationContext generationContext)

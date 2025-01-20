@@ -350,7 +350,7 @@ namespace VariantsPlugin
                         foreach (var variant in variantTags)
                         {
                             var arguments = tableRow.Cells.Select(c => c.Value).ToList();
-                            arguments.Add($"{_variantHelper.VariantKey}:{variant}");
+                            arguments.Add($"{variant}");
                             _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, arguments,
                                 example.Tags.GetTagsExcept("@Ignore"), example.Tags.HasTag("@Ignore"));
                         }

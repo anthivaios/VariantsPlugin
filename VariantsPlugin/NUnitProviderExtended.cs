@@ -8,13 +8,20 @@ using Reqnroll.Generator.UnitTestProvider;
 namespace VariantsPlugin
 {
 
-    public class NUnitProviderExtended : IUnitTestGeneratorProvider
+    public class NUnitProviderExtended : NUnit3TestGeneratorProvider
     {
         private readonly CodeDomHelper _codeDomHelper;
         private readonly string _variantKey;
         private IEnumerable<string> _filteredCategories;
-        public NUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey) 
+        private NUnit3TestGeneratorProvider _baseProvider;
+        public NUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey) : base(codeDomHelper) 
         {
+            _codeDomHelper = codeDomHelper;
+            _variantKey = variantKey;
+        }
+        public NUnitProviderExtended(NUnit3TestGeneratorProvider baseProvider, CodeDomHelper codeDomHelper, string variantKey) : base(codeDomHelper) 
+        {
+            _baseProvider = baseProvider;
             _codeDomHelper = codeDomHelper;
             _variantKey = variantKey;
         }
@@ -76,7 +83,7 @@ namespace VariantsPlugin
             _codeDomHelper.AddAttribute(generationContext.TestInitializeMethod, "NUnit.Framework.SetUpAttribute");
         }
 
-        public void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
+        public override void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
             int lastUnderscoreIndex = friendlyTestName.LastIndexOf("__", StringComparison.Ordinal);
 
@@ -86,15 +93,15 @@ namespace VariantsPlugin
                 string afterLast = friendlyTestName.Substring(lastUnderscoreIndex + 2);
                 friendlyTestName = beforeLast + afterLast;
             }
-            _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.TestAttribute");
-            _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.DescriptionAttribute", friendlyTestName);
+            _baseProvider.SetTestMethod(generationContext, testMethod, friendlyTestName);
         }
 
-        public void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
+        public override void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
             // Remove categories that are not the current variant
-            _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.EndsWith(testMethod.Name.Split(new[] {"__"}, StringSplitOptions.None).Last()));
-            _codeDomHelper.AddAttributeForEachValue(testMethod, "NUnit.Framework.CategoryAttribute", _filteredCategories);
+            var variantValue = testMethod.Name.Split(new []{"__"}, StringSplitOptions.None).Last();
+            _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.ToLower().Equals($"{_variantKey.ToLower()}:{variantValue.ToLower()}"));
+            _baseProvider.SetTestMethodCategories(generationContext, testMethod, _filteredCategories);
         }
 
         public void SetRow(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> arguments, IEnumerable<string> tags, bool isIgnored)
@@ -147,8 +154,9 @@ namespace VariantsPlugin
             SetTestMethod(generationContext, testMethod, scenarioTitle);
         }
 
-        public void SetRowTest(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string scenarioTitle)
+        public override void SetRowTest(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string scenarioTitle)
         {
+            _baseProvider.SetRowTest(generationContext, testMethod, scenarioTitle);
         }
 
         public virtual void SetTestClassNonParallelizable(TestClassGenerationContext generationContext)
