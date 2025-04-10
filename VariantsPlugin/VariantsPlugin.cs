@@ -80,6 +80,7 @@ namespace VariantsPlugin
             {
                 "nunit" => new NUnitProviderExtended(codeDomHelper, _variantKey),
                 "xunit" => new XUnitProviderExtended(codeDomHelper, _variantKey),
+                "mstest" => new MsTestProviderExtended(codeDomHelper, _variantKey),
                 _ =>  new NUnitProviderExtended(codeDomHelper, _variantKey)
             };
         private IUnitTestGeneratorProvider GetGeneratorProviderFromConfig(IUnitTestGeneratorProvider baseProvider, CodeDomHelper codeDomHelper, string config) =>
@@ -87,6 +88,7 @@ namespace VariantsPlugin
             {
                 "nunit" => new NUnitProviderExtended((NUnit3TestGeneratorProvider)baseProvider, codeDomHelper, _variantKey),
                 "xunit" => new XUnitProviderExtended((XUnit2TestGeneratorProvider)baseProvider,codeDomHelper, _variantKey),
+                "mstest" => new MsTestProviderExtended(codeDomHelper, _variantKey),
                 _ =>  new NUnitProviderExtended(codeDomHelper, _variantKey)
             };
     }
