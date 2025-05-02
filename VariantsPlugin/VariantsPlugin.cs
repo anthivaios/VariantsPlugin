@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Text.Json;
 using Reqnroll.Configuration;
 using Reqnroll.Generator.CodeDom;
 using Reqnroll.Generator.Interfaces;
@@ -34,9 +34,14 @@ namespace VariantsPlugin
             var codeDomHelper = objectContainer.Resolve<CodeDomHelper>(language);
             var decoratorRegistry = objectContainer.Resolve<DecoratorRegistry>();
             var reqnrollConfiguration = objectContainer.Resolve<ReqnrollConfiguration>();
-            var configAsJObject = JObject.Parse(reqnrollConfiguration.ConfigSourceText);
-            _variantKey = configAsJObject.ContainsKey(VariantKeyName)? configAsJObject.GetValue(VariantKeyName).ToString() : "Operator";
-            
+            using var doc = JsonDocument.Parse(reqnrollConfiguration.ConfigSourceText);
+            var root = doc.RootElement;
+
+            _variantKey = root.TryGetProperty(VariantKeyName, out var variantProp)
+                ? variantProp.GetString()
+                : "Operator";
+
+            var isRetryActive = root.TryGetProperty("IsRetryActive", out var retryProp) && retryProp.GetBoolean();
             // Create custom unit test provider based on user defined config value
             if (string.IsNullOrEmpty(utp))
             {
@@ -56,7 +61,8 @@ namespace VariantsPlugin
                     codeDomHelper, 
                     reqnrollConfiguration, 
                     decoratorRegistry, 
-                    _variantKey
+                    _variantKey,
+                    isRetryActive
                 );
 
                 var customFeatureGeneratorProvider = new FeatureGeneratorProviderExtended(customFeatureGenerator);
@@ -69,7 +75,7 @@ namespace VariantsPlugin
                 var generatorProvider = GetGeneratorProviderFromConfig(codeDomHelper, utp);
                 e.ObjectContainer.RegisterInstanceAs(generatorProvider);
                 e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(
-                    new FeatureGeneratorProviderExtended(new FeatureGeneratorExtended(generatorProvider, codeDomHelper, reqnrollConfiguration, decoratorRegistry, _variantKey)),
+                    new FeatureGeneratorProviderExtended(new FeatureGeneratorExtended(generatorProvider, codeDomHelper, reqnrollConfiguration, decoratorRegistry, _variantKey, isRetryActive)),
                     "default"
                 );
             }

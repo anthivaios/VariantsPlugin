@@ -1,4 +1,5 @@
 ﻿using System.CodeDom;
+using System.Text.RegularExpressions;
 using Reqnroll;
 using Reqnroll.BoDi;
 using Reqnroll.Generator;
@@ -95,12 +96,13 @@ namespace VariantsPlugin
             }
             _baseProvider.SetTestMethod(generationContext, testMethod, friendlyTestName);
         }
-
+        
         public override void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
             // Remove categories that are not the current variant
             var variantValue = testMethod.Name.Split(new []{"__"}, StringSplitOptions.None).Last();
             _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.ToLower().Equals($"{_variantKey.ToLower()}:{variantValue.ToLower()}"));
+            
             _baseProvider.SetTestMethodCategories(generationContext, testMethod, _filteredCategories);
         }
 

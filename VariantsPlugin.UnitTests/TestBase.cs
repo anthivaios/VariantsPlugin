@@ -43,7 +43,7 @@ namespace VariantsPlugin.UnitTests
             var runtimeConfiguration = ConfigurationLoader.GetDefault();
             runtimeConfiguration.AllowDebugGeneratedFiles = true;
 
-            return new FeatureGeneratorExtended(_unitTestGeneratorProvider, codeDomHelper, runtimeConfiguration, dr, SampleFeatureFile.Variant);
+            return new FeatureGeneratorExtended(_unitTestGeneratorProvider, codeDomHelper, runtimeConfiguration, dr, SampleFeatureFile.Variant, false);
         }
         
 
