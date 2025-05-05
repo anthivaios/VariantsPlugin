@@ -24,6 +24,7 @@ namespace VariantsPlugin
 
         //NEW CODE START
         private readonly VariantHelper _variantHelper;
+        private readonly RetryHelper _retryHelper;
         private List<Tag> _featureVariantTags;
         private bool _setVariantToContextForOutlineTest;
         private bool _setVariantToContextForTest;
@@ -44,6 +45,7 @@ namespace VariantsPlugin
             _decoratorRegistry = decoratorRegistry;
             _scenarioPartHelper = new ScenarioPartHelper(_reqnrollConfiguration, _codeDomHelper);
             _variantHelper = new VariantHelper(variantKey); //NEW CODE
+            _retryHelper = new RetryHelper();
             IsRetryActive = isRetryActive;
         }
 
@@ -71,6 +73,24 @@ namespace VariantsPlugin
             //NEW CODE START
             var variantTags = _variantHelper.GetFeatureVariantTagValues(reqnrollFeature);
             _featureVariantTags = _variantHelper.FeatureTags(reqnrollFeature);
+            
+            
+            if (IsRetryActive)
+            {
+                var retryTag = _retryHelper.GetRetryTag(reqnrollFeature);
+                if (retryTag.Count > 1)
+                    throw new TestGeneratorException(
+                        $"Multiple Feature Retry tags on Feature: {reqnrollFeature.Name}");
+                int featureRetries = retryTag == null || retryTag.All(string.IsNullOrEmpty)
+                    ? 0
+                    : _retryHelper.GetRetriesNumber(retryTag);
+                _retryHelper.SetFeatureRetriesNumber(featureRetries);
+
+                if (_retryHelper.AnyScenarioHasRetryTag(reqnrollFeature) && _retryHelper.FeatureHasRetryTag)
+                    throw new TestGeneratorException(
+                        "Retry tags were detected at feature and scenario level, please specify at one level or the other.");
+            }
+            
 
             if (_variantHelper.AnyScenarioHasVariantTag(reqnrollFeature) && _variantHelper.FeatureHasVariantTags)
                 throw new TestGeneratorException(
@@ -777,8 +797,10 @@ namespace VariantsPlugin
             CodeMemberMethod testMethod, StepsContainer scenarioDefinition)
         {
             // call scenario cleanup
-            if(IsRetryActive && scenarioDefinition.GetTags().Any(c => c.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase) || 
-                                                                      Regex.Match(c.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$", RegexOptions.IgnoreCase).Success ))
+            if(IsRetryActive && (scenarioDefinition.GetTags()
+                   .Any(c => c.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase) || 
+                             Regex.Match(c.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$", RegexOptions.IgnoreCase).Success )
+               || _retryHelper.FeatureHasRetryTag))
             {
                 // Step 1: testRunner.ScenarioContext.TestError != null
                 var testErrorNotNullCondition = new CodeBinaryOperatorExpression(
@@ -1023,28 +1045,35 @@ namespace VariantsPlugin
         }
         public void SetRetry(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
-            var num = 3; 
-            var isThereRetryTag = scenarioCategories.Any(c => c.Equals("retry", StringComparison.OrdinalIgnoreCase) || Regex.Match(c, @"^retry(?:\((\d+)\))?$", RegexOptions.IgnoreCase).Success);
-            if (isThereRetryTag)
+            if (scenarioCategories == null) return;
+
+            // Try to extract a retry count from scenario tags
+            int? retryValue = scenarioCategories
+                .Select(c =>
+                {
+                    if (c.Equals("retry", StringComparison.OrdinalIgnoreCase))
+                        return 3;
+
+                    var match = Regex.Match(c, @"^retry\((\d+)\)$", RegexOptions.IgnoreCase);
+                    return match.Success ? int.Parse(match.Groups[1].Value) : (int?)null;
+                })
+                .FirstOrDefault(v => v.HasValue);
+
+            // Fallback to feature-level retry count if applicable
+            if (_retryHelper.FeatureHasRetryTag && _retryHelper.FeatureRetryCount > 0)
             {
-                int? retryValue = scenarioCategories
-                    .Select(c =>
-                    {
-                        if (c.Equals("retry", StringComparison.OrdinalIgnoreCase))
-                            return 3;
-        
-                        var match = Regex.Match(c, @"^retry\((\d+)\)$", RegexOptions.IgnoreCase);
-                        return match.Success ? int.Parse(match.Groups[1].Value) : (int?)null;
-                    })
-                    .FirstOrDefault(v => v.HasValue);
-                CodeAttributeDeclaration retryAttribute = new CodeAttributeDeclaration(
+                retryValue = _retryHelper.FeatureRetryCount;
+            }
+
+            if (retryValue.HasValue)
+            {
+                var retryAttribute = new CodeAttributeDeclaration(
                     "NUnit.Framework.Retry",
-                    new CodeAttributeArgument(new CodePrimitiveExpression(retryValue))
+                    new CodeAttributeArgument(new CodePrimitiveExpression(retryValue.Value))
                 );
 
                 testMethod.CustomAttributes.Add(retryAttribute);
             }
-            
         }
     }
 }
