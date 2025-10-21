@@ -375,9 +375,8 @@ namespace VariantsPlugin
                         foreach (var variant in variantTags)
                         {
                             var arguments = tableRow.Cells.Select(c => c.Value).ToList();
-                            arguments.Add($"{variant}");
-                            exampleList.AddRange(arguments);
-                            _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, exampleList ,
+                            arguments.Add($"{_variantHelper.VariantKey}:{variant}");
+                            _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, exampleList.Concat(arguments).ToList() ,
                                 example.Tags.GetTagsExcept("@Ignore"), example.Tags.HasTag("@Ignore"));
                         }
                     }
@@ -387,7 +386,7 @@ namespace VariantsPlugin
                         exampleList.AddRange(arguments);
                         _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, exampleList,
                             example.Tags.GetTagsExcept("@Ignore"), example.Tags.HasTag("@Ignore"));
-                    }
+                    } 
                     //NEW CODE END
                 }
             }
@@ -570,7 +569,7 @@ namespace VariantsPlugin
                                     new CodeBinaryOperatorExpression(
                                         new CodeBinaryOperatorExpression(
                                             new CodeBinaryOperatorExpression(
-                                                new CodePrimitiveExpression("Errors while trying to create new Rule"),
+                                                new CodePrimitiveExpression(scenarioDefinition.Name),
                                                 CodeBinaryOperatorType.Add,
                                                 new CodePrimitiveExpression(": ")
                                             ),
@@ -603,7 +602,7 @@ namespace VariantsPlugin
                                 _codeDomHelper.GetGlobalizedTypeName(typeof(ScenarioInfo)), // constructor type
                                 new CodeBinaryOperatorExpression(
                                     new CodeBinaryOperatorExpression(
-                                        new CodePrimitiveExpression("Errors while trying to create new Rule"),
+                                        new CodePrimitiveExpression(scenarioDefinition.Name),
                                         CodeBinaryOperatorType.Add,
                                         new CodePrimitiveExpression(": ")
                                     ),

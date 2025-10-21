@@ -1,16 +1,13 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AIUnitTestGeneratorProvider_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002E_002E_003FUsers_003Fa_002Ethivaios_003FAppData_003FRoaming_003FJetBrains_003FRider2024_002E3_003Fresharper_002Dhost_003FSourcesCache_003Fe0d8f66ace6ba7e18a2c6d7a3ac92cad26995f7e65d2b53255cedc5b669c4_003FIUnitTestGeneratorProvider_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\Users\a.thivaios\RiderProjects\TestProject\TestProject\bin\Debug\net7.0\Reqnroll.MSTest.ReqnrollPlugin.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\a.thivaios\RiderProjects\TestProject\TestProject\bin\Debug\net7.0\Reqnroll.NUnit.ReqnrollPlugin.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\a.thivaios\RiderProjects\TestProject\TestProject\bin\Debug\net7.0\TestProject.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\a.thivaios\RiderProjects\TestProject\VariantsPlugin\bin\Debug\netstandard2.0\VariantsPlugin.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\a.thivaios\RiderProjects\TestProject\TestProject\bin\Debug\net7.0\VariantsPlugin.dll" /&gt;&#xD;
+  &lt;Assembly Path="C:\source\repos\VariantsPlugin\VariantsPlugin\bin\Debug\netstandard2.0\VariantsPlugin.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:Int64 x:Key="/Default/Environment/Hierarchy/Build/BuildTool/MsbuildVersion/@EntryValue">1114112</s:Int64>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Program Files\dotnet\sdk\7.0.410\MSBuild.dll</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=f1fa4fa4_002D8a09_002D4a9a_002Db38f_002D9c7433ee3c1d/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;And&gt;&#xD;
-    &lt;Namespace&gt;VariantsPlugin.UnitTests&lt;/Namespace&gt;&#xD;
-    &lt;Project Location="C:\Users\a.thivaios\RiderProjects\TestProject\VariantsPlugin.UnitTests" Presentation="&amp;lt;VariantsPlugin.UnitTests&amp;gt;" /&gt;&#xD;
-  &lt;/And&gt;&#xD;
-&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
+	</wpf:ResourceDictionary>
