@@ -39,7 +39,7 @@ namespace VariantsPlugin
 
         private static void AddLineDirective(CodeStatementCollection statements, Location location, ReqnrollConfiguration reqnrollConfiguration, CodeDomHelper codeDomHelper)
         {
-            if (location == null || reqnrollConfiguration.AllowDebugGeneratedFiles) return;
+            if (location.Equals(default(Location)) || reqnrollConfiguration.AllowDebugGeneratedFiles) return;
             AddSourceLinePragmaStatement(statements, location.Line, location.Column, codeDomHelper);
         }
 

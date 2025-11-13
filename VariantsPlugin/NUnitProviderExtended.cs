@@ -9,20 +9,15 @@ using Reqnroll.Generator.UnitTestProvider;
 namespace VariantsPlugin
 {
 
-    public class NUnitProviderExtended : IUnitTestGeneratorProvider
+    public class NUnitProviderExtended : NUnit3TestGeneratorProvider
     {
         private readonly CodeDomHelper _codeDomHelper;
         private readonly string _variantKey;
         private IEnumerable<string> _filteredCategories;
-        private NUnit3TestGeneratorProvider _baseProvider;
-        public NUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey)
+        protected internal const string NONPARALLELIZABLE_ATTR = "NUnit.Framework.NonParallelizableAttribute";
+
+        public NUnitProviderExtended(CodeDomHelper codeDomHelper, string variantKey) : base(codeDomHelper)
         {
-            _codeDomHelper = codeDomHelper;
-            _variantKey = variantKey;
-        }
-        public NUnitProviderExtended(NUnit3TestGeneratorProvider baseProvider, CodeDomHelper codeDomHelper, string variantKey)
-        {
-            _baseProvider = new NUnit3TestGeneratorProvider(codeDomHelper);
             _codeDomHelper = codeDomHelper;
             _variantKey = variantKey;
         }
@@ -30,22 +25,13 @@ namespace VariantsPlugin
         {
             return UnitTestGeneratorTraits.RowTests | UnitTestGeneratorTraits.ParallelExecution;
         }
-        public void SetTestClass(TestClassGenerationContext generationContext, string featureTitle, string featureDescription)
-        {
-            _codeDomHelper.AddAttribute(generationContext.TestClass, "NUnit.Framework.TestFixtureAttribute");
-            _codeDomHelper.AddAttribute(generationContext.TestClass, "NUnit.Framework.DescriptionAttribute", featureTitle );
-        }
 
         public void SetTestClassInitializeMethod(TestClassGenerationContext generationContext)
         {
             generationContext.TestClassInitializeMethod.Attributes |= MemberAttributes.Static;
             _codeDomHelper.AddAttribute(generationContext.TestClassInitializeMethod, "NUnit.Framework.OneTimeSetUpAttribute");
         }
-
-        public void SetTestClassCategories(TestClassGenerationContext generationContext, IEnumerable<string> featureCategories)
-        {
-            _codeDomHelper.AddAttributeForEachValue(generationContext.TestClass, "NUnit.Framework.CategoryAttribute", featureCategories);
-        }
+        
 
         public void SetTestClassIgnore(TestClassGenerationContext generationContext)
         {
@@ -62,29 +48,9 @@ namespace VariantsPlugin
             generationContext.TestClassCleanupMethod.Attributes |= MemberAttributes.Static;
             _codeDomHelper.AddAttribute(generationContext.TestClassCleanupMethod, "NUnit.Framework.OneTimeTearDownAttribute");
         }
+        
 
-        public void FinalizeTestClass(TestClassGenerationContext generationContext)
-        {
-            generationContext.ScenarioInitializeMethod.Statements.Add(
-                new CodeMethodInvokeExpression(
-                    new CodeMethodReferenceExpression(
-                        new CodePropertyReferenceExpression(
-                            new CodePropertyReferenceExpression(
-                                new CodeFieldReferenceExpression(null, generationContext.TestRunnerField.Name),
-                                nameof(ScenarioContext)),
-                            nameof(ScenarioContext.ScenarioContainer)),
-                        nameof(IObjectContainer.RegisterInstanceAs),
-                        new CodeTypeReference("NUnit.Framework.TestContext")),
-                    GetTestContextExpression()));
-        }
-        private CodeExpression GetTestContextExpression() => new CodeVariableReferenceExpression("NUnit.Framework.TestContext.CurrentContext");
-
-        public void SetTestInitializeMethod(TestClassGenerationContext generationContext)
-        {
-            _codeDomHelper.AddAttribute(generationContext.TestInitializeMethod, "NUnit.Framework.SetUpAttribute");
-        }
-
-        public void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
+        public override void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
         {
             int lastUnderscoreIndex = friendlyTestName.LastIndexOf("__", StringComparison.Ordinal);
 
@@ -94,16 +60,17 @@ namespace VariantsPlugin
                 string afterLast = friendlyTestName.Substring(lastUnderscoreIndex + 2);
                 friendlyTestName = beforeLast + afterLast;
             }
-            _baseProvider.SetTestMethod(generationContext, testMethod, friendlyTestName);
+
+            base.SetTestMethod(generationContext, testMethod, friendlyTestName);
         }
         
-        public void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
+        public override void SetTestMethodCategories(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> scenarioCategories)
         {
             // Remove categories that are not the current variant
             var variantValue = testMethod.Name.Split(new []{"__"}, StringSplitOptions.None).Last();
             _filteredCategories = scenarioCategories.Where(a => !a.StartsWith(_variantKey) || a.ToLower().Equals($"{_variantKey.ToLower()}:{variantValue.ToLower()}"));
             
-            _baseProvider.SetTestMethodCategories(generationContext, testMethod, _filteredCategories);
+            base.SetTestMethodCategories(generationContext, testMethod, _filteredCategories);
         }
 
         public void SetRow(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, IEnumerable<string> arguments, IEnumerable<string> tags, bool isIgnored)
@@ -150,29 +117,17 @@ namespace VariantsPlugin
             _codeDomHelper.AddAttribute(testMethod, "NUnit.Framework.IgnoreAttribute", "Ignored scenario");
         }
 
-        public void SetTestCleanupMethod(TestClassGenerationContext generationContext)
-        {
-            _codeDomHelper.AddAttribute(generationContext.TestCleanupMethod, "NUnit.Framework.TearDownAttribute");
-        }
 
         public void SetTestMethodAsRow(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string scenarioTitle, string exampleSetName, string variantName, IEnumerable<KeyValuePair<string, string>> arguments)
         {
             SetTestMethod(generationContext, testMethod, scenarioTitle);
         }
-
-        public void SetRowTest(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string scenarioTitle)
-        {
-            _baseProvider.SetRowTest(generationContext, testMethod, scenarioTitle);
-        }
-
-        public virtual void SetTestClassNonParallelizable(TestClassGenerationContext generationContext)
-        {
-            _codeDomHelper.AddAttribute(generationContext.TestClass, "NUnit.Framework.NonParallelizableAttribute");
-        }
+        
 
         public void MarkCodeMethodInvokeExpressionAsAwait(CodeMethodInvokeExpression expression)
         {
             _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(expression);
         }
+        
     }
 }
