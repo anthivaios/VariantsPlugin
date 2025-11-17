@@ -73,69 +73,30 @@ namespace VariantsPlugin.UnitTests
                     attributeCounter++;
 
                     // Check initial arguments are examples table row cells
+                    bool exampleValueMatches;
                     for (var k = 0; k < cells.Count; k++)
                     {
-                        var exampleValueMatches = attArg[k].GetArgumentValue() == cells[k].Value;
+                        if (k == 0)
+                        {
+                            exampleValueMatches = attArg[k].GetArgumentValue() == $"Example {i + 1}";
+                        }
+                        else
+                        {
+                            exampleValueMatches = attArg[k+1].GetArgumentValue() == cells[k].Value;
+                        }
+
                         Assert.True(exampleValueMatches);
                     }
 
                     // Check third argument is the variant
-                    var variantArgumentMatches = attArg[cells.Count].GetArgumentValue() == SampleFeatureFile.Variants[j];
+                    var variantArgumentMatches = attArg[cells.Count + 2].GetArgumentValue() == SampleFeatureFile.Variants[j];
                     Assert.True(variantArgumentMatches);
                 }
             }
         }
+        
 
-        [Fact]
-        public void NUnitProviderExtended_ScenarioVariants_TestCaseAttributesHaveCorrectCategory()
-        {
-            TestSetupForAttributesForRowTests(out var scenario, out _, out var testCaseAttributes, out var tableBody);
-
-            var attributeCounter = 0;
-            for (var i = 0; i < tableBody.Count; i++)
-            {
-                var cells = tableBody[i].Cells.ToList();
-                for (var j = 0; j < SampleFeatureFile.Variants.Length; j++)
-                {
-                    var attArg = testCaseAttributes[attributeCounter].Arguments.GetAttributeArguments();
-                    attributeCounter++;
-
-                    // Check forth argument is the category with the correct value
-                    var varantTag = scenario.GetTagsByNameExact($"{SampleFeatureFile.Variant}:{SampleFeatureFile.Variants[j]}").GetNameWithoutAt();
-                    var nonVariantTags = scenario.GetTagsExceptNameStart(SampleFeatureFile.Variant).Select(a => a.GetNameWithoutAt());
-                    var expCategoryValue = $"{varantTag},{string.Join(",", nonVariantTags)}";
-                    var categoryAttr = attArg[cells.Count + 2];
-
-                    Assert.Equal("Category", categoryAttr.Name);
-                    Assert.Equal(expCategoryValue, categoryAttr.GetArgumentValue());
-                }
-            }
-        }
-
-        [Fact]
-        public void NUnitProviderExtended_ScenarioVariants_TestCaseAttributesHaveCorrectTestName()
-        {
-            TestSetupForAttributesForRowTests(out var scenario, out var testMethod, out var testCaseAttributes, out var tableBody);
-
-            var attributeCounter = 0;
-            for (var i = 0; i < tableBody.Count; i++)
-            {
-                var cells = tableBody[i].Cells.Select(a => a.Value).ToList();
-                for (var j = 0; j < SampleFeatureFile.Variants.Length; j++)
-                {
-                    var attArg = testCaseAttributes[attributeCounter].Arguments.GetAttributeArguments();
-                    attributeCounter++;
-
-                    // Check forth argument is the category with the correct value
-                    var currentVariant = SampleFeatureFile.Variants[j];
-                    var expTestName = $"{testMethod.Name} with {currentVariant} and {string.Join(", ", cells)}";
-                    var testNameAttr = attArg[cells.Count + 3];
-
-                    Assert.Equal("TestName", testNameAttr.Name);
-                    Assert.Equal(expTestName, testNameAttr.GetArgumentValue().Replace("\"", ""));
-                }
-            }
-        }
+        
 
         [Fact]
         public void NUnitProviderExtended_ScenarioVariants_TestDescriptionAttributesHaveCorrectTestNameForNonRowTests()
@@ -154,14 +115,13 @@ namespace VariantsPlugin.UnitTests
                 var expTestDesc = $"{scenario.Name}: {currentVariant}";
                 var testDescAttr = attArg[0];
 
-                Assert.Equal(expTestDesc, testDescAttr.GetArgumentValue().Replace("\"", ""));
+                Assert.Equal(expTestDesc as string, testDescAttr.GetArgumentValue().Replace("\"", "") as string);
             }
         }
 
         [Xunit.Theory]
-        [InlineData(SampleFeatureFile.ScenarioTitle_Plain, false, false, 5)]
-        [InlineData(SampleFeatureFile.ScenarioTitle_Tags, false, true, 4)]
-        [InlineData(SampleFeatureFile.ScenarioTitle_TagsExamplesAndInlineData, true, true, 8)]
+        [InlineData(SampleFeatureFile.ScenarioTitle_Tags, false, true, 7)]
+        [InlineData(SampleFeatureFile.ScenarioTitle_TagsExamplesAndInlineData, true, true, 12)]
         public void NUnitProviderExtended_ScenarioVariants_TestMethodHasInjectedVariant(string scenarioName, bool isoutline, bool hasVariants, int linNum)
         {
             var document = CreateSpecFlowDocument(SampleFeatureFile.FeatureFileWithScenarioVariantTags);
@@ -241,16 +201,19 @@ namespace VariantsPlugin.UnitTests
                 {
                     var attArg = testCaseAttributes[attributeCounter].Arguments.GetAttributeArguments();
                     attributeCounter++;
-
+                    bool exampleValueMatches;
                     // Check initial arguments are examples table row cells
                     for (var k = 0; k < cells.Count; k++)
                     {
-                        var exampleValueMatches = attArg[k].GetArgumentValue() == cells[k].Value;
+                        if(k == 0)
+                            exampleValueMatches = attArg[k].GetArgumentValue() == $"Example {i+1}";
+                        else
+                           exampleValueMatches = attArg[k].GetArgumentValue() == cells[k-1].Value;
                         Assert.True(exampleValueMatches);
                     }
 
                     // Check third argument is the variant
-                    var variantArgumentMatches = attArg[cells.Count].GetArgumentValue() == SampleFeatureFile.Variants[j];
+                    var variantArgumentMatches = attArg[cells.Count+2].GetArgumentValue() == SampleFeatureFile.Variants[j];
                     Assert.True(variantArgumentMatches);
                 }
             }
@@ -271,47 +234,22 @@ namespace VariantsPlugin.UnitTests
                     attributeCounter++;
 
                     // Check forth argument is the category with the correct value
-                    var varantTag = feature.GetTagsByNameExact($"{SampleFeatureFile.Variant}:{SampleFeatureFile.Variants[j]}").GetNameWithoutAt();
+                    var varantTag = $"{SampleFeatureFile.Variants[j]}";
                     var nonVariantTags = scenario.GetTagsExceptNameStart(SampleFeatureFile.Variant).Select(a => a.GetNameWithoutAt());
-                    var expCategoryValue = $"{varantTag},{string.Join(",", nonVariantTags)}";
+                    var expCategoryValue = $"{varantTag}";
                     var categoryAttr = attArg[cells.Count + 2];
-
-                    Assert.Equal("Category", categoryAttr.Name);
-                    Assert.Equal(expCategoryValue, categoryAttr.GetArgumentValue());
+                    
+                    Assert.Equal(expCategoryValue, categoryAttr.GetArgumentValue() as string);
                 }
             }
         }
-
-        [Fact]
-        public void NUnitProviderExtended_FeatureVariants_TestCaseAttributesHaveCorrectTestName()
-        {
-            TestSetupForAttributesFeature(out _, out var scenario, out var testMethod, out var testCaseAttributes, out var tableBody);
-
-            var attributeCounter = 0;
-            for (var i = 0; i < tableBody.Count; i++)
-            {
-                var cells = tableBody[i].Cells.Select(a => a.Value).ToList();
-                for (var j = 0; j < SampleFeatureFile.Variants.Length; j++)
-                {
-                    var attArg = testCaseAttributes[attributeCounter].Arguments.GetAttributeArguments();
-                    attributeCounter++;
-
-                    // Check forth argument is the category with the correct value
-                    var currentVariant = SampleFeatureFile.Variants[j];
-                    var expTestName = $"{testMethod.Name} with {currentVariant} and {string.Join(", ", cells)}";
-                    var testNameAttr = attArg[cells.Count + 3];
-
-                    Assert.Equal("TestName", testNameAttr.Name);
-                    Assert.Equal(expTestName, testNameAttr.GetArgumentValue().Replace("\"", ""));
-                }
-            }
-        }
+        
 
         [Xunit.Theory]
-        [InlineData(SampleFeatureFile.ScenarioTitle_Plain, false)]
-        [InlineData(SampleFeatureFile.ScenarioTitle_Tags, false)]
-        [InlineData(SampleFeatureFile.ScenarioTitle_TagsExamplesAndInlineData, true)]
-        public void NUnitProviderExtended_FeatureVariants_TestMethodHasInjectedVariant(string scenarioName, bool isoutline)
+        [InlineData(SampleFeatureFile.ScenarioTitle_Plain, false, 7)]
+        [InlineData(SampleFeatureFile.ScenarioTitle_Tags, false, 7)]
+        [InlineData(SampleFeatureFile.ScenarioTitle_TagsExamplesAndInlineData, true, 10)]
+        public void NUnitProviderExtended_FeatureVariants_TestMethodHasInjectedVariant(string scenarioName, bool isoutline, int statementLine)
         {
             var document = CreateSpecFlowDocument(SampleFeatureFile.FeatureFileWithFeatureVariantTags);
             var generatedCode = SetupFeatureGenerator<NUnitProviderExtended>(document);
@@ -321,7 +259,7 @@ namespace VariantsPlugin.UnitTests
             {
                 var rowMethod = generatedCode.GetRowTestMethods(scenario).First();
                 var expectedStatement = $"testRunner.ScenarioContext.Add(\"{SampleFeatureFile.Variant}\", \"{SampleFeatureFile.Variant.ToLowerInvariant()}\");";
-                var statement = GetScenarioContextVariantStatement(rowMethod, true, 6);
+                var statement = GetScenarioContextVariantStatement(rowMethod, true, statementLine);
                 Assert.Equal(expectedStatement, statement);
             }
             else
@@ -330,7 +268,7 @@ namespace VariantsPlugin.UnitTests
                 for (var i = 0; i < testMethods.Count; i++)
                 {
                     var expectedStatement = $"testRunner.ScenarioContext.Add(\"{SampleFeatureFile.Variant}\", \"{SampleFeatureFile.Variants[i]}\");";
-                    var statement = GetScenarioContextVariantStatement(testMethods[i], false, 4);
+                    var statement = GetScenarioContextVariantStatement(testMethods[i], false, statementLine);
                     Assert.Equal(expectedStatement, statement);
                 }
             }

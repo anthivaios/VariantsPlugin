@@ -124,14 +124,19 @@ namespace VariantsPlugin
                         : _variantHelper.GetScenarioVariantTagValues(scenarioDefinition.ScenarioDefinition);
                     if (variantTags.Count > 0)
                     {
-                        variantTags.ForEach(a =>
-                            GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition, pickleIndex, a));
+                        foreach (var variant in variantTags)
+                        {
+                            GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition,
+                                pickleIndex, variant);
+                            pickleIndex++;
+                        }
                     }
                     else
                     {
                         GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition, pickleIndex, null);
+                        pickleIndex++;
                     }
-                    pickleIndex++;
+                    
                 }
             }
 
@@ -290,6 +295,7 @@ namespace VariantsPlugin
         private ParameterSubstitution CreateParamToIdentifierMapping(ScenarioOutline scenarioOutline)
         {
             var paramToIdentifier = new ParameterSubstitution();
+            paramToIdentifier.Add("example", "example".ToIdentifierCamelCase());
             foreach (var param in scenarioOutline.Examples.First().TableHeader.Cells)
             {
                 paramToIdentifier.Add(param.Value, param.Value.ToIdentifierCamelCase());
@@ -414,10 +420,11 @@ namespace VariantsPlugin
                         foreach (var variant in variantTags)
                         {
                             var arguments = tableRow.Cells.Select(c => c.Value).Concat([pickleIndex.ToString()]).ToList();
-                            arguments.Add($"{_variantHelper.VariantKey}:{variant}");
+                            arguments.Add($"{variant}");
                             _testGeneratorProvider.SetRow(generationContext, scenarioOutlineTestMethod,
                                 exampleList.Concat(arguments).ToList(),
                                 GetNonIgnoreTags(example.Tags), HasIgnoreTag(example.Tags));
+                            pickleIndex++;
                         }
                     }
                     else
@@ -426,8 +433,9 @@ namespace VariantsPlugin
                         exampleList.AddRange(arguments);
                         _testGeneratorProvider.SetRow(generationContext, scenarioOutlineTestMethod, exampleList,
                             GetNonIgnoreTags(example.Tags), HasIgnoreTag(example.Tags));
+                        pickleIndex++;
                     }
-                    pickleIndex++;
+                    
                     //NEW CODE END
                 }
             }
