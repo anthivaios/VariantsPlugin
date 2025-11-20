@@ -16,11 +16,10 @@
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:Int64 x:Key="/Default/Environment/Hierarchy/Build/BuildTool/MsbuildVersion/@EntryValue">1114112</s:Int64>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">C:\Program Files\dotnet\sdk\7.0.410\MSBuild.dll</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fa0fe2b2_002Df9e4_002D4822_002Da492_002D05a55531ad24/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="NUnitProviderExtendedTests" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;xUnit::434354FA-F858-4E23-8248-8B7835C2A48C::net7.0::VariantsPlugin.UnitTests.NUnitProviderExtendedTests&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8e71e063_002D0d08_002D4a64_002D8550_002D4a2e305f7ffd/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;VariantsPlugin.UnitTests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Project Location="C:\source\repos\VariantsPlugin\VariantsPlugin.UnitTests" Presentation="&amp;lt;VariantsPlugin.UnitTests&amp;gt;" /&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
+	
 	
 	
 	

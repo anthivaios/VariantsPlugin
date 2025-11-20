@@ -9,7 +9,7 @@ using Reqnroll.Generator.UnitTestProvider;
 namespace VariantsPlugin
 {
 
-    public class NUnitProviderExtended : NUnit3TestGeneratorProvider
+    public class NUnitProviderExtended : NUnit3TestGeneratorProvider , IUnitTestGeneratorProvider
     {
         private readonly CodeDomHelper _codeDomHelper;
         private readonly string _variantKey;
@@ -43,6 +43,50 @@ namespace VariantsPlugin
             generationContext.TestClassCleanupMethod.Attributes |= MemberAttributes.Static;
             _codeDomHelper.AddAttribute(generationContext.TestClassCleanupMethod, "NUnit.Framework.OneTimeTearDownAttribute");
         }
+
+        
+        // NEW CODE START
+        public new void SetRow(TestClassGenerationContext generationContext, CodeMemberMethod testMethod,
+            IEnumerable<string> arguments, IEnumerable<string> tags, bool isIgnored)
+        {
+            
+            var args = arguments.Select(
+                arg => new CodeAttributeArgument(new CodePrimitiveExpression(arg))).ToList();
+
+            var tagsArray = tags.ToArray();
+            var hasVariantTag = tagsArray.Where(t => t.StartsWith($"{_variantKey}:"));
+
+            // addressing ReSharper bug: TestCase attribute with empty string[] param causes inconclusive result - https://youtrack.jetbrains.com/issue/RSRP-279138
+            var tagsExceptVariantTags = tagsArray.Where(t => !t.StartsWith($"{_variantKey}:"));
+            bool hasExampleTags = tagsExceptVariantTags.Any();
+            var exampleTagExpressionList = tagsExceptVariantTags.Select(t => (CodeExpression)new CodePrimitiveExpression(t));
+            var exampleTagsExpression = hasExampleTags
+                ? new CodeArrayCreateExpression(typeof(string[]), exampleTagExpressionList.ToArray())
+                : (CodeExpression) new CodePrimitiveExpression(null);
+                
+            args.Add(new CodeAttributeArgument(exampleTagsExpression));
+
+            // adds 'Category' named parameter so that NUnit also understands that this test case belongs to the given categories
+            if (tagsArray.Any())
+            {
+                CodeExpression exampleTagsStringExpr = new CodePrimitiveExpression(string.Join(",", tagsArray));
+                args.Add(new CodeAttributeArgument("Category", exampleTagsStringExpr));
+            }
+            
+            if (hasVariantTag.Any())
+            {
+                var example = args[0].Value as CodePrimitiveExpression;
+                var testName = $"{testMethod.Name} with {example.Value} and {hasVariantTag.ToList().First()}";
+                args.Add(new CodeAttributeArgument("TestName", new CodePrimitiveExpression(testName)));
+            }
+            
+
+            if (isIgnored)
+                args.Add(new CodeAttributeArgument("IgnoreReason", new CodePrimitiveExpression("Ignored by @ignore tag")));
+
+            CodeDomHelper.AddAttribute(testMethod, ROW_ATTR, args.ToArray());
+        }
+        // NEW CODE END
         
 
         public override void SetTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod, string friendlyTestName)
