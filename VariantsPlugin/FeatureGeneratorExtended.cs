@@ -1,5 +1,6 @@
 ﻿using System.CodeDom;
 using System.Collections.Specialized;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Gherkin.Ast;
 using Reqnroll;
@@ -24,16 +25,21 @@ namespace VariantsPlugin
 
         //NEW CODE START
         private readonly VariantHelper _variantHelper;
+        private readonly RetryHelper _retryHelper;
         private List<Tag> _featureVariantTags;
         private bool _setVariantToContextForOutlineTest;
         private bool _setVariantToContextForTest;
         private string _variantValue;
         readonly ScenarioPartHelper _scenarioPartHelper;
         public const string CustomGeneratedComment = "Generation customised by VariantPlugin";
-        //NEW CODE END
+        private const string IGNORE_TAG = "@Ignore";
+
+        public bool IsRetryActive;
+        // STARTS CODE
 
         public FeatureGeneratorExtended(IUnitTestGeneratorProvider testGeneratorProvider, CodeDomHelper codeDomHelper,
-            ReqnrollConfiguration reqnrollConfiguration, IDecoratorRegistry decoratorRegistry, string variantKey)
+            ReqnrollConfiguration reqnrollConfiguration, IDecoratorRegistry decoratorRegistry, string variantKey,
+            bool isRetryActive)
             : base(decoratorRegistry, testGeneratorProvider, codeDomHelper, reqnrollConfiguration)
         {
             _testGeneratorProvider = testGeneratorProvider;
@@ -42,14 +48,20 @@ namespace VariantsPlugin
             _decoratorRegistry = decoratorRegistry;
             _scenarioPartHelper = new ScenarioPartHelper(_reqnrollConfiguration, _codeDomHelper);
             _variantHelper = new VariantHelper(variantKey); //NEW CODE
+            _retryHelper = new RetryHelper();
+            IsRetryActive = isRetryActive;
         }
 
-        public CodeNamespace GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
+        // ENDS CODE
+        public string TestClassNameFormat { get; set; } = "{0}Feature";
+
+        public UnitTestFeatureGenerationResult GenerateUnitTestFixture(ReqnrollDocument document, string testClassName,
             string targetNamespace)
         {
-            var reqnrollFeature = document.ReqnrollFeature;
-            testClassName = testClassName ?? $"{reqnrollFeature.Name.ToIdentifier()}Feature";
             var codeNamespace = CreateNamespace(targetNamespace);
+            var feature = document.ReqnrollFeature;
+
+            testClassName ??= string.Format(TestClassNameFormat, feature.Name.ToIdentifier());
             var generationContext = CreateTestClassStructure(codeNamespace, testClassName, document);
 
             SetupTestClass(generationContext);
@@ -65,16 +77,34 @@ namespace VariantsPlugin
             SetupTestCleanupMethod(generationContext);
 
 
-            //NEW CODE START
-            var variantTags = _variantHelper.GetFeatureVariantTagValues(reqnrollFeature);
-            _featureVariantTags = _variantHelper.FeatureTags(reqnrollFeature);
+            // STARTS CODE
+            var variantTags = _variantHelper.GetFeatureVariantTagValues(feature);
+            _featureVariantTags = _variantHelper.FeatureTags(feature);
 
-            if (_variantHelper.AnyScenarioHasVariantTag(reqnrollFeature) && _variantHelper.FeatureHasVariantTags)
+
+            if (IsRetryActive)
+            {
+                var retryTag = _retryHelper.GetRetryTag(feature);
+                if (retryTag.Count > 1)
+                    throw new TestGeneratorException(
+                        $"Multiple Feature Retry tags on Feature: {feature.Name}");
+                int featureRetries = retryTag == null || retryTag.All(string.IsNullOrEmpty)
+                    ? 0
+                    : _retryHelper.GetRetriesNumber(retryTag);
+                _retryHelper.SetFeatureRetriesNumber(featureRetries);
+
+                if (_retryHelper.AnyScenarioHasRetryTag(feature) && _retryHelper.FeatureHasRetryTag)
+                    throw new TestGeneratorException(
+                        "Retry tags were detected at feature and scenario level, please specify at one level or the other.");
+            }
+
+
+            if (_variantHelper.AnyScenarioHasVariantTag(feature) && _variantHelper.FeatureHasVariantTags)
                 throw new TestGeneratorException(
                     "Variant tags were detected at feature and scenario level, please specify at one level or the other.");
             //NEW CODE END
-
-            foreach (var scenarioDefinition in GetScenarioDefinitions(reqnrollFeature))
+            var pickleIndex = 0;
+            foreach (var scenarioDefinition in GetScenarioDefinitions(feature))
             {
                 if (string.IsNullOrEmpty(scenarioDefinition.Scenario.Name))
                     throw new TestGeneratorException("The scenario must have a title specified.");
@@ -85,7 +115,7 @@ namespace VariantsPlugin
                     variantTags = _variantHelper.FeatureHasVariantTags
                         ? variantTags
                         : _variantHelper.GetScenarioVariantTagValues(scenarioDefinition.ScenarioDefinition);
-                    GenerateScenarioOutlineTest(generationContext, scenarioDefinition, variantTags);
+                    GenerateScenarioOutlineTest(generationContext, scenarioDefinition, ref pickleIndex, variantTags);
                 }
                 else
                 {
@@ -94,20 +124,30 @@ namespace VariantsPlugin
                         : _variantHelper.GetScenarioVariantTagValues(scenarioDefinition.ScenarioDefinition);
                     if (variantTags.Count > 0)
                     {
-                        variantTags.ForEach(a =>
-                            GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition, a));
+                        foreach (var variant in variantTags)
+                        {
+                            GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition,
+                                pickleIndex, variant);
+                            pickleIndex++;
+                        }
                     }
                     else
                     {
-                        GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition, null);
+                        GenerateTest(generationContext, (ScenarioDefinitionInFeatureFile)scenarioDefinition, pickleIndex, null);
+                        pickleIndex++;
                     }
-                    //NEW CODE END
+                    
                 }
             }
 
+            // ENDS CODE
             _testGeneratorProvider.FinalizeTestClass(generationContext);
             codeNamespace.Comments.Add(new CodeCommentStatement(new CodeComment(CustomGeneratedComment))); //NEW CODE
-            return codeNamespace;
+            var type = generationContext.GetType();
+            var prop = type.GetProperty("FeatureMessages", BindingFlags.Instance | BindingFlags.NonPublic);
+            var valueFeatureMessages = prop.GetValue(generationContext) as string;
+            return new UnitTestFeatureGenerationResult(codeNamespace, valueFeatureMessages,
+                generationContext.FeatureMessagesResourceName, generationContext.GenerationWarnings);
         }
 
         private IEnumerable<ScenarioDefinitionInFeatureFile> GetScenarioDefinitions(ReqnrollFeature feature)
@@ -127,9 +167,13 @@ namespace VariantsPlugin
         private void SetupScenarioCleanupMethod(TestClassGenerationContext generationContext)
         {
             var scenarioCleanupMethod = generationContext.ScenarioCleanupMethod;
+
             scenarioCleanupMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
-            scenarioCleanupMethod.Name = "ScenarioCleanupAsync";
+            scenarioCleanupMethod.Name = GeneratorConstants.SCENARIO_CLEANUP_NAME;
+
             _codeDomHelper.MarkCodeMemberMethodAsAsync(scenarioCleanupMethod);
+
+            // call collect errors
             var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
 
             //await testRunner.CollectScenarioErrorsAsync();
@@ -145,8 +189,10 @@ namespace VariantsPlugin
         private void SetupScenarioStartMethod(TestClassGenerationContext generationContext)
         {
             var scenarioStartMethod = generationContext.ScenarioStartMethod;
+
             scenarioStartMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
             scenarioStartMethod.Name = GeneratorConstants.SCENARIO_START_NAME;
+
             _codeDomHelper.MarkCodeMemberMethodAsAsync(scenarioStartMethod);
 
             //await testRunner.OnScenarioStartAsync();
@@ -183,63 +229,73 @@ namespace VariantsPlugin
 
         private void SetupScenarioInitializeMethod(TestClassGenerationContext generationContext)
         {
-            var initializeMethod = generationContext.ScenarioInitializeMethod;
-            initializeMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
-            initializeMethod.Name = "ScenarioInitialize";
-            initializeMethod.Parameters.Add(
-                new CodeParameterDeclarationExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(ScenarioInfo)),
-                    "scenarioInfo"));
+            var scenarioInitializeMethod = generationContext.ScenarioInitializeMethod;
 
-            //testRunner.OnScenarioInitialize(scenarioInfo);
+            scenarioInitializeMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
+            scenarioInitializeMethod.Name = GeneratorConstants.SCENARIO_INITIALIZE_NAME;
+            scenarioInitializeMethod.Parameters.Add(
+                new CodeParameterDeclarationExpression(
+                    new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                    "scenarioInfo"));
+            scenarioInitializeMethod.Parameters.Add(
+                new CodeParameterDeclarationExpression(
+                    new CodeTypeReference(typeof(RuleInfo), CodeTypeReferenceOptions.GlobalReference), "ruleInfo"));
+
+            //testRunner.OnScenarioInitialize(scenarioInfo, ruleInfo);
             var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
-            initializeMethod.Statements.Add(
+            scenarioInitializeMethod.Statements.Add(
                 new CodeMethodInvokeExpression(
                     testRunnerField,
                     nameof(ITestRunner.OnScenarioInitialize),
-                    new CodeVariableReferenceExpression("scenarioInfo")));
+                    new CodeVariableReferenceExpression("scenarioInfo"),
+                    new CodeVariableReferenceExpression("ruleInfo")));
         }
 
         private void GenerateScenarioOutlineTest(TestClassGenerationContext generationContext,
-            ScenarioDefinitionInFeatureFile scenarioDefinitionInFeatureFile, List<string> variantTags = null)
+            ScenarioDefinitionInFeatureFile scenarioDefinitionInFeatureFile, ref int pickleIndex, List<string> variantTags = null)
         {
             var scenarioOutline = scenarioDefinitionInFeatureFile.ScenarioOutline;
             ValidateExampleSetConsistency(scenarioOutline);
 
             var paramToIdentifier = CreateParamToIdentifierMapping(scenarioOutline);
 
-            var scenarioOutlineTestMethod =
-                CreateScenarioOutlineTestMethod(generationContext, scenarioOutline, paramToIdentifier);
-            var exampleTagsParam =
-                new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_OUTLINE_EXAMPLE_TAGS_PARAMETER);
+            var scenarioOutlineTestMethod = CreateScenarioOutlineTestMethod(generationContext, scenarioOutline, paramToIdentifier);
+            var exampleTagsParam = new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_OUTLINE_EXAMPLE_TAGS_PARAMETER);
 
             //NEW CODE START
             if (generationContext.GenerateRowTests)
             {
                 if (variantTags?.Count > 0)
                     GenerateScenarioOutlineExamplesAsRowTests(generationContext, scenarioOutline,
-                        scenarioOutlineTestMethod, variantTags);
+                        scenarioOutlineTestMethod, ref pickleIndex, variantTags);
                 else
                     GenerateScenarioOutlineExamplesAsRowTests(generationContext, scenarioOutline,
-                        scenarioOutlineTestMethod, null);
+                        scenarioOutlineTestMethod, ref pickleIndex, null);
             }
             else
             {
                 if (variantTags?.Count > 0)
-                    variantTags.ForEach(a => GenerateScenarioOutlineExamplesAsIndividualMethods(scenarioOutline,
-                        generationContext, scenarioOutlineTestMethod, paramToIdentifier, a));
+                {
+                    foreach (var variant in variantTags)
+                    {
+                        GenerateScenarioOutlineExamplesAsIndividualMethods(scenarioOutline,
+                            generationContext, scenarioOutlineTestMethod, paramToIdentifier, ref pickleIndex, variant);
+                    }
+                }
                 else
                     GenerateScenarioOutlineExamplesAsIndividualMethods(scenarioOutline, generationContext,
-                        scenarioOutlineTestMethod, paramToIdentifier, null);
+                        scenarioOutlineTestMethod, paramToIdentifier, ref pickleIndex, null);
             }
             //NEW CODE END
 
             GenerateTestBody(generationContext, scenarioDefinitionInFeatureFile, scenarioOutlineTestMethod,
-                exampleTagsParam, paramToIdentifier);
+                exampleTagsParam, paramToIdentifier,true);
         }
 
         private ParameterSubstitution CreateParamToIdentifierMapping(ScenarioOutline scenarioOutline)
         {
             var paramToIdentifier = new ParameterSubstitution();
+            paramToIdentifier.Add("example", "example".ToIdentifierCamelCase());
             foreach (var param in scenarioOutline.Examples.First().TableHeader.Cells)
             {
                 paramToIdentifier.Add(param.Value, param.Value.ToIdentifierCamelCase());
@@ -259,8 +315,7 @@ namespace VariantsPlugin
                 int suffix = 1;
                 while (paramToIdentifier.Take(i).Count(kv => kv.Value == paramToIdentifier[i].Value) > 0)
                 {
-                    paramToIdentifier[i] = new KeyValuePair<string, string>(paramToIdentifier[i].Key,
-                        paramToIdentifier[i].Value + suffix);
+                    paramToIdentifier[i] = new KeyValuePair<string, string>(paramToIdentifier[i].Key, paramToIdentifier[i].Value + suffix);
                     suffix++;
                 }
             }
@@ -289,141 +344,195 @@ namespace VariantsPlugin
         }
 
         private void GenerateScenarioOutlineExamplesAsIndividualMethods(ScenarioOutline scenarioOutline,
-            TestClassGenerationContext generationContext, CodeMemberMethod scenatioOutlineTestMethod,
-            ParameterSubstitution paramToIdentifier, string tag = null)
+            TestClassGenerationContext generationContext, CodeMemberMethod scenarioOutlineTestMethod,
+            ParameterSubstitution paramToIdentifier, ref int pickleIndex, string tag = null)
         {
-            int num = 0;
-            foreach (var example in scenarioOutline.Examples)
+            var exampleSetIndex = 0;
+
+            foreach (var exampleSet in scenarioOutline.Examples)
             {
-                var flag = example.TableBody.CanUseFirstColumnAsName();
-                string str;
-                if (!string.IsNullOrEmpty(example.Name))
+                var useFirstColumnAsName = CanUseFirstColumnAsName(exampleSet.TableBody);
+                string exampleSetIdentifier;
+
+                if (string.IsNullOrEmpty(exampleSet.Name))
                 {
-                    str = example.Name.ToIdentifier();
+                    if (scenarioOutline.Examples.Count(es => string.IsNullOrEmpty(es.Name)) > 1)
+                    {
+                        exampleSetIdentifier = $"ExampleSet {exampleSetIndex}".ToIdentifier();
+                    }
+                    else
+                    {
+                        exampleSetIdentifier = null;
+                    }
                 }
                 else
                 {
-                    var examples = scenarioOutline.Examples;
-                    bool func(Examples es) => string.IsNullOrEmpty(es.Name);
-                    str = examples.Count(func) > 1 ? $"ExampleSet {num}".ToIdentifier() : null;
+                    exampleSetIdentifier = exampleSet.Name.ToIdentifier();
                 }
 
-                foreach (var data in example.TableBody.Select((r, i) => new
-                         {
-                             Row = r,
-                             Index = i
-                         }))
+
+                foreach (var example in exampleSet.TableBody.Select((r, i) => new { Row = r, Index = i }))
                 {
-                    var variantName = flag ? data.Row.Cells.First().Value : $"Variant {data.Index}";
-                    GenerateScenarioOutlineTestVariant(generationContext, scenarioOutline, scenatioOutlineTestMethod,
-                        paramToIdentifier, example.Name ?? "", str, data.Row, example.Tags, variantName, tag);
+                    var variantName = useFirstColumnAsName ? example.Row.Cells.First().Value : $"Variant {example.Index}";
+                    GenerateScenarioOutlineTestVariant(generationContext, scenarioOutline, scenarioOutlineTestMethod, paramToIdentifier, exampleSet.Name ?? "", exampleSetIdentifier, example.Row, pickleIndex, exampleSet.Tags.ToArray(), variantName, tag);
+                    pickleIndex++;
                 }
 
-                num++;
+                exampleSetIndex++;
             }
+        }
+        private bool CanUseFirstColumnAsName(IEnumerable<TableRow> tableBody)
+        {
+            var tableBodyArray = tableBody.ToArray();
+            if (tableBodyArray.Any(r => !r.Cells.Any()))
+            {
+                return false;
+            }
+
+            return tableBodyArray.Select(r => r.Cells.First().Value.ToIdentifier()).Distinct().Count() == tableBodyArray.Length;
         }
 
         private void GenerateScenarioOutlineExamplesAsRowTests(TestClassGenerationContext generationContext,
-            ScenarioOutline scenarioOutline, CodeMemberMethod scenatioOutlineTestMethod,
+            ScenarioOutline scenarioOutline, CodeMemberMethod scenarioOutlineTestMethod, ref int pickleIndex,
             List<string> variantTags = null)
         {
-            SetupTestMethod(generationContext, scenatioOutlineTestMethod, scenarioOutline, null, null, null, true);
+            SetupTestMethod(generationContext, scenarioOutlineTestMethod, scenarioOutline, null, null, null, null,true);
             foreach (var example in scenarioOutline.Examples)
             {
                 //NEW CODE START
                 var hasVariantTags = variantTags?.Count > 0;
-
                 if (hasVariantTags)
                 {
-                    scenatioOutlineTestMethod.Parameters.RemoveAt(scenatioOutlineTestMethod.Parameters.Count - 1);
-                    scenatioOutlineTestMethod.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string),
+                    scenarioOutlineTestMethod.Parameters.RemoveAt(scenarioOutlineTestMethod.Parameters.Count - 1);
+                    scenarioOutlineTestMethod.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string),
                         _variantHelper.VariantKey.ToLowerInvariant()));
-                    scenatioOutlineTestMethod.Parameters.Add(
+                    scenarioOutlineTestMethod.Parameters.Add(
                         new CodeParameterDeclarationExpression(typeof(string[]), "exampleTags"));
                     _setVariantToContextForOutlineTest = true;
                 }
 
+                int count = 1;
                 foreach (var tableRow in example.TableBody)
                 {
+                    var exampleList = new List<string>() { $"Example {count++}" };
                     if (hasVariantTags)
                     {
                         foreach (var variant in variantTags)
                         {
-                            var arguments = tableRow.Cells.Select(c => c.Value).ToList();
+                            var variants = scenarioOutline.Tags.Where(t =>
+                                t.Name.StartsWith($"@{_variantHelper.VariantKey}") && !t.Name.EndsWith(variant));
+                            var arguments = tableRow.Cells.Select(c => c.Value).Concat([pickleIndex.ToString()]).ToList();
                             arguments.Add($"{variant}");
-                            _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, arguments,
-                                example.Tags.GetTagsExcept("@Ignore"), example.Tags.HasTag("@Ignore"));
+                            _testGeneratorProvider.SetRow(generationContext, scenarioOutlineTestMethod,
+                                exampleList.Concat(arguments).ToList(),
+                                GetNonIgnoreTags(example.Tags.ConcatTags(variants)), HasIgnoreTag(example.Tags));
+                            pickleIndex++;
                         }
                     }
                     else
                     {
-                        var arguments = tableRow.Cells.Select(c => c.Value).ToList();
-                        _testGeneratorProvider.SetRow(generationContext, scenatioOutlineTestMethod, arguments,
-                            example.Tags.GetTagsExcept("@Ignore"), example.Tags.HasTag("@Ignore"));
+                        var arguments = tableRow.Cells.Select(c => c.Value).Concat([pickleIndex.ToString()]).ToList();
+                        exampleList.AddRange(arguments);
+                        _testGeneratorProvider.SetRow(generationContext, scenarioOutlineTestMethod, exampleList,
+                            GetNonIgnoreTags(example.Tags), HasIgnoreTag(example.Tags));
+                        pickleIndex++;
                     }
+                    
                     //NEW CODE END
                 }
             }
+        }
+        private IEnumerable<string> GetNonIgnoreTags(IEnumerable<Tag> tags)
+        {
+            return tags.Where(t => !t.Name.Equals(IGNORE_TAG, StringComparison.InvariantCultureIgnoreCase)).Select(t => t.GetNameWithoutAt());
+        }
+        private bool HasIgnoreTag(IEnumerable<Tag> tags)
+        {
+            return tags.Any(t => t.Name.Equals(IGNORE_TAG, StringComparison.InvariantCultureIgnoreCase));
         }
 
         private CodeMemberMethod CreateScenarioOutlineTestMethod(TestClassGenerationContext generationContext,
             ScenarioOutline scenarioOutline, ParameterSubstitution paramToIdentifier)
         {
-            var method = generationContext.TestClass.CreateMethod();
-            method.Attributes = MemberAttributes.Public;
-            method.Name = scenarioOutline.Name.ToIdentifier();
-            foreach (var keyValuePair in paramToIdentifier)
-                method.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string), keyValuePair.Value));
-            method.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string[]), "exampleTags"));
-            _codeDomHelper.MarkCodeMemberMethodAsAsync(method);
-            return method;
+            var testMethod = _codeDomHelper.CreateMethod(generationContext.TestClass);
+
+            testMethod.Attributes = MemberAttributes.Public;
+            testMethod.Name = string.Format(GeneratorConstants.TEST_NAME_FORMAT, scenarioOutline.Name.ToIdentifier());
+
+            _codeDomHelper.MarkCodeMemberMethodAsAsync(testMethod);
+
+            foreach (var pair in paramToIdentifier)
+            {
+                testMethod.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string), pair.Value));
+            }
+            testMethod.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string), GeneratorConstants.PICKLEINDEX_PARAMETER_NAME));
+            testMethod.Parameters.Add(new CodeParameterDeclarationExpression(typeof(string[]), GeneratorConstants.SCENARIO_OUTLINE_EXAMPLE_TAGS_PARAMETER));
+            return testMethod;
         }
 
         private void GenerateScenarioOutlineTestVariant(TestClassGenerationContext generationContext,
-            ScenarioOutline scenarioOutline, CodeMemberMethod scenatioOutlineTestMethod,
+            ScenarioOutline scenarioOutline, CodeMemberMethod scenarioOutlineTestMethod,
             IEnumerable<KeyValuePair<string, string>> paramToIdentifier, string exampleSetTitle,
-            string exampleSetIdentifier, Gherkin.Ast.TableRow row, IEnumerable<Tag> exampleSetTags, string variantName,
+            string exampleSetIdentifier, Gherkin.Ast.TableRow row, int pickleIndex, IEnumerable<Tag> exampleSetTags, string variantName,
             string tag = null)
         {
+            // START NEW CODE
             variantName = string.IsNullOrEmpty(tag) ? variantName : $"{variantName}_{tag}";
+            //END NEW CODE
             var testMethod = CreateTestMethod(generationContext, scenarioOutline, exampleSetTags, variantName,
                 exampleSetIdentifier);
-            _codeDomHelper.AddLineDirective(scenarioOutline, testMethod.Statements, _reqnrollConfiguration);
-            var list1 = new List<CodeExpression>();
-            list1.AddRange(row.Cells.Select(paramCell => new CodePrimitiveExpression(paramCell.Value))
-                .Cast<CodeExpression>().ToList());
-            list1.Add(exampleSetTags.GetStringArrayExpression());
+            
+            //call test implementation with the params
+            var argumentExpressions = row.Cells.Select(paramCell => new CodePrimitiveExpression(paramCell.Value)).Cast<CodeExpression>().ToList();
+            argumentExpressions.Add(new CodePrimitiveExpression(pickleIndex.ToString()));
+            argumentExpressions.Add(_scenarioPartHelper.GetStringArrayExpression(exampleSetTags));
 
             //// NEW CODE START
             if (tag != null)
             {
                 var s = new CodePrimitiveExpression(tag);
-                list1.Add(s);
+                argumentExpressions.Add(s);
                 _setVariantToContextForOutlineTest = true;
             }
             //// NEW CODE END
 
-            testMethod.Statements.Add(new CodeMethodInvokeExpression(new CodeThisReferenceExpression(),
-                scenatioOutlineTestMethod.Name, list1.ToArray()));
-            _codeDomHelper.AddLineDirectiveHidden(testMethod.Statements, _reqnrollConfiguration);
-            var list2 = paramToIdentifier.Select((p2i, paramIndex) =>
-                new KeyValuePair<string, string>(p2i.Key, row.Cells.ElementAt(paramIndex).Value)).ToList();
-            _testGeneratorProvider.SetTestMethodAsRow(generationContext, testMethod, scenarioOutline.Name,
-                exampleSetTitle, variantName, list2);
+            var statements = new List<CodeStatement>();
+
+            using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statements, generationContext.Document.SourceFilePath, scenarioOutline.Location))
+            {
+                var callTestMethodExpression = new CodeMethodInvokeExpression(
+                    new CodeThisReferenceExpression(),
+                    scenarioOutlineTestMethod.Name,
+                    argumentExpressions.ToArray());
+
+                _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(callTestMethodExpression);
+
+                statements.Add(new CodeExpressionStatement(callTestMethodExpression));
+            }
+
+            testMethod.Statements.AddRange(statements.ToArray());
+
+            //_linePragmaHandler.AddLineDirectiveHidden(testMethod.Statements);
+            var arguments = paramToIdentifier.Select((pToId, paramIndex) => new KeyValuePair<string, string>(pToId.Key, row.Cells.ElementAt(paramIndex).Value)).ToList();
+
+            // Use the identifier of the example set (e.g. ExampleSet0, ExampleSet1) if we have it.
+            // Otherwise, use the title of the example set provided by the user in the feature file.
+            string exampleSetName = string.IsNullOrEmpty(exampleSetIdentifier) ? exampleSetTitle : exampleSetIdentifier;
+            _testGeneratorProvider.SetTestMethodAsRow(generationContext, testMethod, scenarioOutline.Name, exampleSetName, variantName, arguments);
         }
 
         private CodeMemberMethod CreateTestMethod(TestClassGenerationContext generationContext, StepsContainer scenario,
-            IEnumerable<Tag> additionalTags, string variantName = null, string exampleSetIdentifier = null)
+            IEnumerable<Tag> additionalTags, string variantName = null, string exampleSetIdentifier = null, string tag = null)
         {
             var method = generationContext.TestClass.CreateMethod();
             _codeDomHelper.MarkCodeMemberMethodAsAsync(method);
             SetupTestMethod(generationContext, method, scenario, additionalTags, variantName, exampleSetIdentifier,
-                false);
+                tag, false);
             return method;
         }
 
         private void GenerateTest(TestClassGenerationContext generationContext,
-            ScenarioDefinitionInFeatureFile scenarioDefinitionInFeatureFile, string tag = null)
+            ScenarioDefinitionInFeatureFile scenarioDefinitionInFeatureFile, int pickleIndex, string tag = null)
         {
             // NEW CODE START
             string variantName = null;
@@ -436,14 +545,17 @@ namespace VariantsPlugin
             // NEW CODE END
 
             var testMethod = CreateTestMethod(generationContext, scenarioDefinitionInFeatureFile.ScenarioDefinition,
-                null, variantName, null);
-            GenerateTestBody(generationContext, scenarioDefinitionInFeatureFile, testMethod, null, null);
+                null, null, null, variantName);
+            GenerateTestBody(generationContext, scenarioDefinitionInFeatureFile, testMethod, pickleIndex: pickleIndex);
         }
 
         private void GenerateTestBody(TestClassGenerationContext generationContext,
             ScenarioDefinitionInFeatureFile scenarioDefinitionInFeatureFile, CodeMemberMethod testMethod,
-            CodeExpression additionalTagsExpression = null, ParameterSubstitution paramToIdentifier = null)
+            CodeExpression additionalTagsExpression = null, ParameterSubstitution paramToIdentifier = null,
+            bool pickleIdIncludedInParameters = false, int? pickleIndex = null)
         {
+            if (!pickleIdIncludedInParameters && pickleIndex == null)
+                throw new ArgumentNullException(nameof(pickleIndex));
             var scenarioDefinition = scenarioDefinitionInFeatureFile.ScenarioDefinition;
             var feature = scenarioDefinitionInFeatureFile.Feature;
 
@@ -452,11 +564,13 @@ namespace VariantsPlugin
             CodeExpression inheritedTagsExpression;
             var featureTagsExpression =
                 new CodeFieldReferenceExpression(null, GeneratorConstants.FEATURE_TAGS_VARIABLE_NAME);
+            var ruleTagsExpression =
+                _scenarioPartHelper.GetStringArrayExpression(scenarioDefinitionInFeatureFile.Rule?.Tags ?? []);
             if (scenarioDefinitionInFeatureFile.Rule != null && scenarioDefinitionInFeatureFile.Rule.Tags.Any())
             {
-                var tagHelperReference = new CodeTypeReferenceExpression(nameof(TagHelper));
-                var ruleTagsExpression =
-                    _scenarioPartHelper.GetStringArrayExpression(scenarioDefinitionInFeatureFile.Rule.Tags);
+                var tagHelperReference =
+                    new CodeTypeReferenceExpression(new CodeTypeReference(typeof(TagHelper),
+                        CodeTypeReferenceOptions.GlobalReference));
                 inheritedTagsExpression = new CodeMethodInvokeExpression(tagHelperReference,
                     nameof(TagHelper.CombineTags), featureTagsExpression, ruleTagsExpression);
             }
@@ -507,17 +621,116 @@ namespace VariantsPlugin
 
             AddVariableForArguments(testMethod, paramToIdentifier);
 
+            // Cucumber Messages support uses a new variables: pickleIndex
+            // The pickleIndex tells the runtime which Pickle this test corresponds to. 
+            // When Backgrounds and Rule Backgrounds are used, we don't know ahead of time how many Steps there are in the Pickle.
+            AddVariableForPickleIndex(testMethod, pickleIdIncludedInParameters, pickleIndex);
+
+            var scenarioName = scenarioDefinition.Name;
+            if (_variantValue != null)
+            {
+                scenarioName = scenarioName + $": {_variantValue}";
+            }
+
+            //// NEW CODE START
+            if (paramToIdentifier == null)
+            {
+                testMethod.Statements.Add(
+                    new CodeVariableDeclarationStatement(
+                        new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                        "scenarioInfo",
+                        new CodeObjectCreateExpression(
+                            new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                            new CodePrimitiveExpression(scenarioName),
+                            new CodePrimitiveExpression(scenarioDefinition.Description),
+                            new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_TAGS_VARIABLE_NAME),
+                            new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_ARGUMENTS_VARIABLE_NAME),
+                            inheritedTagsExpression,
+                            new CodeVariableReferenceExpression(GeneratorConstants.PICKLEINDEX_VARIABLE_NAME))));
+            }
+            else
+            {
+                var hasOperatorVariable = scenarioDefinition.GetTags()
+                    .Any(c => c.GetNameWithoutAt().StartsWith($"{_variantHelper.VariantKey}:"));
+
+
+                if (hasOperatorVariable)
+                {
+                    testMethod.Statements.Add(
+                        new CodeVariableDeclarationStatement(
+                            new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                            "scenarioInfo",
+                            new CodeObjectCreateExpression(
+                                new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                                new CodeBinaryOperatorExpression(
+                                    new CodeBinaryOperatorExpression(
+                                        new CodeBinaryOperatorExpression(
+                                            new CodeBinaryOperatorExpression(
+                                                new CodePrimitiveExpression(scenarioDefinition.Name),
+                                                CodeBinaryOperatorType.Add,
+                                                new CodePrimitiveExpression(": ")
+                                            ),
+                                            CodeBinaryOperatorType.Add,
+                                            new CodeVariableReferenceExpression(paramToIdentifier.First().Value)
+                                        ),
+                                        CodeBinaryOperatorType.Add,
+                                        new CodePrimitiveExpression(" ")
+                                    ),
+                                    CodeBinaryOperatorType.Add,
+                                    new CodeVariableReferenceExpression(
+                                        "@operator") // @operator is just "operator" in CodeDOM
+                                ),
+                                new CodePrimitiveExpression(scenarioDefinition.Description),
+                                new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_TAGS_VARIABLE_NAME),
+                                new CodeVariableReferenceExpression(GeneratorConstants
+                                    .SCENARIO_ARGUMENTS_VARIABLE_NAME),
+                                inheritedTagsExpression,
+                                new CodeVariableReferenceExpression(GeneratorConstants.PICKLEINDEX_VARIABLE_NAME))));
+                }
+                else
+                {
+                    testMethod.Statements.Add(
+                        new CodeVariableDeclarationStatement(
+                            new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                            "scenarioInfo",
+                            new CodeObjectCreateExpression(
+                                new CodeTypeReference(typeof(ScenarioInfo), CodeTypeReferenceOptions.GlobalReference),
+                                new CodeBinaryOperatorExpression(
+                                    new CodeBinaryOperatorExpression(
+                                        new CodePrimitiveExpression(scenarioDefinition.Name),
+                                        CodeBinaryOperatorType.Add,
+                                        new CodePrimitiveExpression(": ")
+                                    ),
+                                    CodeBinaryOperatorType.Add,
+                                    new CodeVariableReferenceExpression(paramToIdentifier.First().Value)
+                                ),
+                                new CodePrimitiveExpression(scenarioDefinition.Description),
+                                new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_TAGS_VARIABLE_NAME),
+                                new CodeVariableReferenceExpression(GeneratorConstants
+                                    .SCENARIO_ARGUMENTS_VARIABLE_NAME),
+                                inheritedTagsExpression,
+                                new CodeVariableReferenceExpression(GeneratorConstants.PICKLEINDEX_VARIABLE_NAME))));
+                }
+            }
+
+            //// NEW CODE END
+
+            AddVariableForRuleTags(testMethod, ruleTagsExpression);
+
             testMethod.Statements.Add(
-                new CodeVariableDeclarationStatement(_codeDomHelper.GetGlobalizedTypeName(typeof(ScenarioInfo)),
-                    "scenarioInfo",
-                    new CodeObjectCreateExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(ScenarioInfo)),
-                        new CodePrimitiveExpression(scenarioDefinition.Name),
-                        new CodePrimitiveExpression(scenarioDefinition.Description),
-                        new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_TAGS_VARIABLE_NAME),
-                        new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_ARGUMENTS_VARIABLE_NAME),
-                        inheritedTagsExpression)));
+                new CodeVariableDeclarationStatement(
+                    new CodeTypeReference(typeof(RuleInfo), CodeTypeReferenceOptions.GlobalReference), "ruleInfo",
+                    scenarioDefinitionInFeatureFile.Rule == null
+                        ? new CodePrimitiveExpression(null)
+                        : new CodeObjectCreateExpression(
+                            new CodeTypeReference(typeof(RuleInfo), CodeTypeReferenceOptions.GlobalReference),
+                            new CodePrimitiveExpression(scenarioDefinitionInFeatureFile.Rule.Name),
+                            new CodePrimitiveExpression(scenarioDefinitionInFeatureFile.Rule.Description),
+                            new CodeVariableReferenceExpression(GeneratorConstants.RULE_TAGS_VARIABLE_NAME))
+                ));
 
             GenerateScenarioInitializeCall(generationContext, scenarioDefinition, testMethod);
+
             //// NEW CODE START
             if (_setVariantToContextForOutlineTest)
             {
@@ -557,7 +770,21 @@ namespace VariantsPlugin
             GenerateTestMethodBody(generationContext, scenarioDefinitionInFeatureFile, testMethod, paramToIdentifier,
                 feature);
 
-            GenerateScenarioCleanupMethodCall(generationContext, testMethod);
+            GenerateScenarioCleanupMethodCall(generationContext, testMethod, scenarioDefinition);
+        }
+
+        private void AddVariableForRuleTags(CodeMemberMethod testMethod, CodeExpression tagsExpression)
+        {
+            var tagVariable = new CodeVariableDeclarationStatement(typeof(string[]),
+                GeneratorConstants.RULE_TAGS_VARIABLE_NAME, tagsExpression);
+
+            testMethod.Statements.Add(tagVariable);
+        }
+
+        public void AddVariableForPickleIndex(CodeMemberMethod testMethod, bool pickleIdIncludedInParameters,
+            int? pickleIndex)
+        {
+            _scenarioPartHelper.AddVariableForPickleIndex(testMethod, pickleIdIncludedInParameters, pickleIndex);
         }
 
         internal void GenerateScenarioInitializeCall(TestClassGenerationContext generationContext,
@@ -572,7 +799,8 @@ namespace VariantsPlugin
                     new CodeMethodInvokeExpression(
                         new CodeThisReferenceExpression(),
                         generationContext.ScenarioInitializeMethod.Name,
-                        new CodeVariableReferenceExpression("scenarioInfo"))));
+                        new CodeVariableReferenceExpression("scenarioInfo"),
+                        new CodeVariableReferenceExpression("ruleInfo"))));
             }
 
             testMethod.Statements.AddRange(statements.ToArray());
@@ -597,7 +825,6 @@ namespace VariantsPlugin
                 new CodeExpressionStatement(callScenarioStartMethodExpression)
             };
 
-
             if (generationContext.Feature.HasFeatureBackground())
             {
                 using (new SourceLineScope(_reqnrollConfiguration, _codeDomHelper, statementsWhenScenarioIsExecuted,
@@ -606,7 +833,6 @@ namespace VariantsPlugin
                     var backgroundMethodCallExpression = new CodeMethodInvokeExpression(
                         new CodeThisReferenceExpression(),
                         generationContext.FeatureBackgroundMethod.Name);
-
                     _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(backgroundMethodCallExpression);
                     statementsWhenScenarioIsExecuted.Add(new CodeExpressionStatement(backgroundMethodCallExpression));
                 }
@@ -621,8 +847,6 @@ namespace VariantsPlugin
                     paramToIdentifier);
             }
 
-            var tagsOfScenarioVariableReferenceExpression =
-                new CodeVariableReferenceExpression(GeneratorConstants.SCENARIO_TAGS_VARIABLE_NAME);
             var featureFileTagFieldReferenceExpression =
                 new CodeFieldReferenceExpression(null, GeneratorConstants.FEATURE_TAGS_VARIABLE_NAME);
 
@@ -631,7 +855,8 @@ namespace VariantsPlugin
                     "CombinedTags");
 
             var tagHelperReference =
-                new CodeTypeReferenceExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(TagHelper)));
+                new CodeTypeReferenceExpression(new CodeTypeReference(typeof(TagHelper),
+                    CodeTypeReferenceOptions.GlobalReference));
             var scenarioTagIgnoredCheckStatement = new CodeMethodInvokeExpression(tagHelperReference,
                 nameof(TagHelper.ContainsIgnoreTag), scenarioCombinedTagsPropertyExpression);
             var featureTagIgnoredCheckStatement = new CodeMethodInvokeExpression(tagHelperReference,
@@ -651,9 +876,13 @@ namespace VariantsPlugin
 
         private CodeMethodInvokeExpression CreateTestRunnerSkipScenarioCall()
         {
-            return new CodeMethodInvokeExpression(
-                new CodeFieldReferenceExpression(null, "testRunner"),
-                nameof(TestRunner.SkipScenario));
+            var testRunnerField = _scenarioPartHelper.GetTestRunnerExpression();
+            var callSkipScenarioExpression = new CodeMethodInvokeExpression(
+                testRunnerField,
+                nameof(TestRunner.SkipScenarioAsync));
+            _codeDomHelper.MarkCodeMethodInvokeExpressionAsAwait(callSkipScenarioExpression);
+
+            return callSkipScenarioExpression;
         }
 
         private void AddVariableForTags(CodeMemberMethod testMethod, CodeExpression tagsExpression)
@@ -667,9 +896,10 @@ namespace VariantsPlugin
         private void AddVariableForArguments(CodeMemberMethod testMethod, ParameterSubstitution paramToIdentifier)
         {
             var argumentsExpression = new CodeVariableDeclarationStatement(
-                typeof(OrderedDictionary),
+                new CodeTypeReference(typeof(OrderedDictionary), CodeTypeReferenceOptions.GlobalReference),
                 GeneratorConstants.SCENARIO_ARGUMENTS_VARIABLE_NAME,
-                new CodeObjectCreateExpression(typeof(OrderedDictionary)));
+                new CodeObjectCreateExpression(new CodeTypeReference(typeof(OrderedDictionary),
+                    CodeTypeReferenceOptions.GlobalReference)));
 
             testMethod.Statements.Add(argumentsExpression);
 
@@ -690,10 +920,59 @@ namespace VariantsPlugin
             }
         }
 
-        internal void GenerateScenarioCleanupMethodCall(TestClassGenerationContext generationContext,
-            CodeMemberMethod testMethod)
+        private void GenerateScenarioCleanupMethodCall(TestClassGenerationContext generationContext,
+            CodeMemberMethod testMethod, StepsContainer scenarioDefinition)
         {
+            // START NEW CODE
             // call scenario cleanup
+            if (IsRetryActive && (scenarioDefinition.GetTags()
+                                      .Any(c =>
+                                          c.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase) ||
+                                          Regex.Match(c.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$",
+                                              RegexOptions.IgnoreCase).Success)
+                                  || _retryHelper.FeatureHasRetryTag))
+            {
+                // Step 1: testRunner.ScenarioContext.TestError != null
+                var testErrorNotNullCondition = new CodeBinaryOperatorExpression(
+                    new CodePropertyReferenceExpression(
+                        new CodePropertyReferenceExpression(
+                            new CodeVariableReferenceExpression("testRunner"),
+                            "ScenarioContext"),
+                        "TestError"),
+                    CodeBinaryOperatorType.IdentityInequality,
+                    new CodePrimitiveExpression(null)
+                );
+
+// Step 2: testRunner.ScenarioContext.TestError.Message
+                var testErrorMessageExpression = new CodePropertyReferenceExpression(
+                    new CodePropertyReferenceExpression(
+                        new CodePropertyReferenceExpression(
+                            new CodeVariableReferenceExpression("testRunner"),
+                            "ScenarioContext"),
+                        "TestError"),
+                    "Message"
+                );
+
+// Step 3: new AssertionException(testRunner.ScenarioContext.TestError.Message)
+                var newAssertionException = new CodeObjectCreateExpression(
+                    "NUnit.Framework.AssertionException", // Hardcoded string type name
+                    new CodeExpression[] { testErrorMessageExpression }
+                );
+
+// Step 4: throw new AssertionException(...)
+                var throwStatement = new CodeThrowExceptionStatement(newAssertionException);
+
+// Step 5: if (testRunner.ScenarioContext.TestError != null) { ... }
+                var ifStatement = new CodeConditionStatement(
+                    testErrorNotNullCondition,
+                    new CodeStatement[] { throwStatement }
+                );
+
+// Step 6: Add to your method
+                testMethod.Statements.Add(ifStatement);
+            }
+
+            // END NEW CODE
             var expression = new CodeMethodInvokeExpression(
                 new CodeThisReferenceExpression(),
                 generationContext.ScenarioCleanupMethod.Name);
@@ -705,17 +984,18 @@ namespace VariantsPlugin
 
         private void SetupTestMethod(TestClassGenerationContext generationContext, CodeMemberMethod testMethod,
             StepsContainer scenarioDefinition, IEnumerable<Tag> additionalTags, string variantName,
-            string exampleSetIdentifier, bool rowTest = false)
+            string exampleSetIdentifier, string tag, bool rowTest = false)
         {
             // ReSharper disable once BitwiseOperatorOnEnumWithoutFlags
             testMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
-            testMethod.Name = GetTestMethodName(scenarioDefinition, variantName, exampleSetIdentifier);
+            testMethod.Name = GetTestMethodName(scenarioDefinition, tag, exampleSetIdentifier);
+            // NEW CODE START
             var friendlyTestName = scenarioDefinition.Name;
-            if (variantName != null)
+            if (tag != null)
             {
-                friendlyTestName = $"{scenarioDefinition.Name}: {variantName}";
+                friendlyTestName = $"{scenarioDefinition.Name}: {tag}";
             }
-
+            // NEW CODE END
             if (rowTest)
             {
                 _testGeneratorProvider.SetRowTest(generationContext, testMethod, friendlyTestName);
@@ -730,6 +1010,11 @@ namespace VariantsPlugin
 
             if (scenarioCategories.Any())
             {
+                if (IsRetryActive)
+                {
+                    SetRetry(generationContext, testMethod, scenarioCategories);
+                }
+
                 _testGeneratorProvider.SetTestMethodCategories(generationContext, testMethod, scenarioCategories);
             }
         }
@@ -854,7 +1139,8 @@ namespace VariantsPlugin
         {
             if (tableArg == null)
             {
-                return new CodeCastExpression(_codeDomHelper.GetGlobalizedTypeName(typeof(Table)),
+                return new CodeCastExpression(
+                    new CodeTypeReference(typeof(Table), CodeTypeReferenceOptions.GlobalReference),
                     new CodePrimitiveExpression(null));
             }
 
@@ -867,10 +1153,11 @@ namespace VariantsPlugin
             //Table table0 = new Table(header...);
             var tableVar = new CodeVariableReferenceExpression("table" + _tableCounter);
             statements.Add(
-                new CodeVariableDeclarationStatement(_codeDomHelper.GetGlobalizedTypeName(typeof(Table)),
+                new CodeVariableDeclarationStatement(
+                    new CodeTypeReference(typeof(Table), CodeTypeReferenceOptions.GlobalReference),
                     tableVar.VariableName,
                     new CodeObjectCreateExpression(
-                        _codeDomHelper.GetGlobalizedTypeName(typeof(Table)),
+                        new CodeTypeReference(typeof(Table), CodeTypeReferenceOptions.GlobalReference),
                         GetStringArrayExpression(header.Cells.Select(c => c.Value), paramToIdentifier))));
 
             foreach (var row in body)
@@ -892,5 +1179,41 @@ namespace VariantsPlugin
             return new CodeArrayCreateExpression(typeof(string[]),
                 items.Select(item => GetSubstitutedString(item, paramToIdentifier)).ToArray());
         }
+
+        // START CODE
+        public void SetRetry(TestClassGenerationContext generationContext, CodeMemberMethod testMethod,
+            IEnumerable<string> scenarioCategories)
+        {
+            if (scenarioCategories == null) return;
+
+            // Try to extract a retry count from scenario tags
+            int? retryValue = scenarioCategories
+                .Select(c =>
+                {
+                    if (c.Equals("retry", StringComparison.OrdinalIgnoreCase))
+                        return 3;
+
+                    var match = Regex.Match(c, @"^retry\((\d+)\)$", RegexOptions.IgnoreCase);
+                    return match.Success ? int.Parse(match.Groups[1].Value) : (int?)null;
+                })
+                .FirstOrDefault(v => v.HasValue);
+
+            // Fallback to feature-level retry count if applicable
+            if (_retryHelper.FeatureHasRetryTag && _retryHelper.FeatureRetryCount > 0)
+            {
+                retryValue = _retryHelper.FeatureRetryCount;
+            }
+
+            if (retryValue.HasValue)
+            {
+                var retryAttribute = new CodeAttributeDeclaration(
+                    "NUnit.Framework.Retry",
+                    new CodeAttributeArgument(new CodePrimitiveExpression(retryValue.Value))
+                );
+
+                testMethod.CustomAttributes.Add(retryAttribute);
+            }
+        }
+        // END CODE
     }
 }

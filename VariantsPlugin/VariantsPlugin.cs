@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Text.Json;
 using Reqnroll.Configuration;
 using Reqnroll.Generator.CodeDom;
 using Reqnroll.Generator.Interfaces;
@@ -12,12 +12,12 @@ using Reqnroll.UnitTestProvider;
 
 namespace VariantsPlugin
 {
-
     public class VariantsPlugin : IGeneratorPlugin
     {
         private string VariantKeyName = "variantkey";
         private string _variantKey;
         private string utp;
+
         public void Initialize(GeneratorPluginEvents pluginEvents, GeneratorPluginParameters pluginParameters,
             UnitTestProviderConfiguration unitTestProviderConfiguration)
         {
@@ -28,15 +28,19 @@ namespace VariantsPlugin
 
         private void OnCustomizeDependencies(object sender, CustomizeDependenciesEventArgs e)
         {
-            
             var objectContainer = e.ObjectContainer;
             var language = objectContainer.Resolve<ProjectSettings>().ProjectPlatformSettings.Language;
             var codeDomHelper = objectContainer.Resolve<CodeDomHelper>(language);
             var decoratorRegistry = objectContainer.Resolve<DecoratorRegistry>();
             var reqnrollConfiguration = objectContainer.Resolve<ReqnrollConfiguration>();
-            var configAsJObject = JObject.Parse(reqnrollConfiguration.ConfigSourceText);
-            _variantKey = configAsJObject.ContainsKey(VariantKeyName)? configAsJObject.GetValue(VariantKeyName).ToString() : "Operator";
-            
+            using var doc = JsonDocument.Parse(reqnrollConfiguration.ConfigSourceText);
+            var root = doc.RootElement;
+
+            _variantKey = root.TryGetProperty(VariantKeyName, out var variantProp)
+                ? variantProp.GetString()
+                : "Operator";
+
+            var isRetryActive = root.TryGetProperty("IsRetryActive", out var retryProp) && retryProp.GetBoolean();
             // Create custom unit test provider based on user defined config value
             if (string.IsNullOrEmpty(utp))
             {
@@ -44,52 +48,28 @@ namespace VariantsPlugin
                 utp = c.UnitTestProvider;
 
                 if (string.IsNullOrEmpty(utp))
-                    throw new Exception("Unit test provider not detected, please install as a nuget package described here: https://github.com/SpecFlowOSS/SpecFlow/wiki/SpecFlow-and-.NET-Core");
-            }
-            var existingGeneratorProvider = e.ObjectContainer.Resolve<IUnitTestGeneratorProvider>();
-            if (existingGeneratorProvider != null)
-            {
-                // Optionally wrap or extend the existing provider
-                var generatorProvider = GetGeneratorProviderFromConfig(existingGeneratorProvider, codeDomHelper, utp);
-                var customFeatureGenerator = new FeatureGeneratorExtended(
-                    generatorProvider, 
-                    codeDomHelper, 
-                    reqnrollConfiguration, 
-                    decoratorRegistry, 
-                    _variantKey
-                );
-
-                var customFeatureGeneratorProvider = new FeatureGeneratorProviderExtended(customFeatureGenerator);
-                e.ObjectContainer.RegisterInstanceAs(customFeatureGenerator);
-                e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(customFeatureGeneratorProvider, "default");
-            }
-            else
-            {
-                // If no provider exists, register your own
-                var generatorProvider = GetGeneratorProviderFromConfig(codeDomHelper, utp);
-                e.ObjectContainer.RegisterInstanceAs(generatorProvider);
-                e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(
-                    new FeatureGeneratorProviderExtended(new FeatureGeneratorExtended(generatorProvider, codeDomHelper, reqnrollConfiguration, decoratorRegistry, _variantKey)),
-                    "default"
-                );
+                    throw new Exception(
+                        "Unit test provider not detected, please install as a nuget package described here: https://github.com/SpecFlowOSS/SpecFlow/wiki/SpecFlow-and-.NET-Core");
             }
 
+
+            // If no provider exists, register your own
+            var generatorProvider = GetGeneratorProviderFromConfig(codeDomHelper, utp);
+            e.ObjectContainer.RegisterInstanceAs(generatorProvider);
+            e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(
+                new FeatureGeneratorProviderExtended(new FeatureGeneratorExtended(generatorProvider, codeDomHelper,
+                    reqnrollConfiguration, decoratorRegistry, _variantKey, isRetryActive)),
+                "default"
+            );
         }
+
         private IUnitTestGeneratorProvider GetGeneratorProviderFromConfig(CodeDomHelper codeDomHelper, string config) =>
             config switch
             {
                 "nunit" => new NUnitProviderExtended(codeDomHelper, _variantKey),
                 "xunit" => new XUnitProviderExtended(codeDomHelper, _variantKey),
                 "mstest" => new MsTestProviderExtended(codeDomHelper, _variantKey),
-                _ =>  new NUnitProviderExtended(codeDomHelper, _variantKey)
-            };
-        private IUnitTestGeneratorProvider GetGeneratorProviderFromConfig(IUnitTestGeneratorProvider baseProvider, CodeDomHelper codeDomHelper, string config) =>
-            config switch
-            {
-                "nunit" => new NUnitProviderExtended((NUnit3TestGeneratorProvider)baseProvider, codeDomHelper, _variantKey),
-                "xunit" => new XUnitProviderExtended((XUnit2TestGeneratorProvider)baseProvider,codeDomHelper, _variantKey),
-                "mstest" => new MsTestProviderExtended(codeDomHelper, _variantKey),
-                _ =>  new NUnitProviderExtended(codeDomHelper, _variantKey)
+                _ => new NUnitProviderExtended(codeDomHelper, _variantKey)
             };
     }
 }

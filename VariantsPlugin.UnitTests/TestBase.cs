@@ -1,11 +1,6 @@
 ﻿using Gherkin.Ast;
-using Microsoft.CSharp;
-using System;
 using System.CodeDom;
-using System.CodeDom.Compiler;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using Reqnroll.BoDi;
 using Reqnroll.Configuration;
 using Reqnroll.Generator.CodeDom;
@@ -34,7 +29,8 @@ namespace VariantsPlugin.UnitTests
             var codeDomHelper = new CodeDomHelper(CodeDomProviderLanguage.CSharp);
             _unitTestGeneratorProvider = (T)Activator.CreateInstance(typeof(T), codeDomHelper, SampleFeatureFile.Variant);
             var featureGenerator = FeatureGenerator(codeDomHelper);
-            return featureGenerator.GenerateUnitTestFixture(document, testClassName, tagetNamespace);
+            var result = featureGenerator.GenerateUnitTestFixture(document, testClassName, tagetNamespace);
+            return result.CodeNamespace;
         }
 
         private IFeatureGenerator FeatureGenerator(CodeDomHelper codeDomHelper)
@@ -43,7 +39,7 @@ namespace VariantsPlugin.UnitTests
             var runtimeConfiguration = ConfigurationLoader.GetDefault();
             runtimeConfiguration.AllowDebugGeneratedFiles = true;
 
-            return new FeatureGeneratorExtended(_unitTestGeneratorProvider, codeDomHelper, runtimeConfiguration, dr, SampleFeatureFile.Variant);
+            return new FeatureGeneratorExtended(_unitTestGeneratorProvider, codeDomHelper, runtimeConfiguration, dr, SampleFeatureFile.Variant, false);
         }
         
 
