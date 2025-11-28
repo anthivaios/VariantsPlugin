@@ -420,7 +420,7 @@ namespace VariantsPlugin
                         foreach (var variant in variantTags)
                         {
                             var variants = scenarioOutline.Tags.Where(t =>
-                                t.Name.StartsWith($"@{_variantHelper.VariantKey}") && !t.Name.EndsWith(variant));
+                                t.Name.StartsWith($"@{_variantHelper.VariantKey}") && t.Name.EndsWith(variant));
                             var arguments = tableRow.Cells.Select(c => c.Value).Concat([pickleIndex.ToString()]).ToList();
                             arguments.Add($"{variant}");
                             _testGeneratorProvider.SetRow(generationContext, scenarioOutlineTestMethod,
