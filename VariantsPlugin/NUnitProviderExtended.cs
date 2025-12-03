@@ -66,6 +66,25 @@ namespace VariantsPlugin
                 
             args.Add(new CodeAttributeArgument(exampleTagsExpression));
 
+            
+            if (hasVariantTag.Any())
+            {
+                var tableColumns = args.Count - 4;
+                var example = args[0].Value as CodePrimitiveExpression;
+                var variant = hasVariantTag.ToList().First().Split(':')[1];
+                var testName = $"{testMethod.Name} with {variant} and ";
+                string rowAttributes = "";
+                for (int i = 0; i < tableColumns; i++)
+                {
+                    example = args[i+1].Value as CodePrimitiveExpression;
+                    rowAttributes += $"\"{example.Value}\"";
+                    if (i != tableColumns - 1)
+                    {
+                        rowAttributes += ", ";
+                    }
+                }
+                args.Add(new CodeAttributeArgument("TestName", new CodePrimitiveExpression(testName + rowAttributes)));
+            }
             // adds 'Category' named parameter so that NUnit also understands that this test case belongs to the given categories
             if (tagsArray.Any())
             {
@@ -73,12 +92,7 @@ namespace VariantsPlugin
                 args.Add(new CodeAttributeArgument("Category", exampleTagsStringExpr));
             }
             
-            if (hasVariantTag.Any())
-            {
-                var example = args[0].Value as CodePrimitiveExpression;
-                var testName = $"{testMethod.Name} with {example.Value} and {hasVariantTag.ToList().First()}";
-                args.Add(new CodeAttributeArgument("TestName", new CodePrimitiveExpression(testName)));
-            }
+            
             
 
             if (isIgnored)

@@ -2,14 +2,14 @@
 <package>
     <metadata>
         <id>VariantsPlugin</id>
-        <version>2.0.1</version>
+        <version>2.0.2</version>
         <authors>a.thivaios</authors>
         <description>Extends ReqnRoll to allow variants of a test to be run using tags</description>
         <tags>ReqnRoll Plugin Variants XUnit NUnit MSTest</tags>
         <projectUrl>https://github.com/anthivaios/VariantsPlugin</projectUrl>
         <repository type="git" url="https://github.com/anthivaios/VariantsPlugin" />
         <releaseNotes>
-            Fix Scenario Outline Categories
+            Changed Nunit Scenario Outline Test Name to contain only example values and variant
         </releaseNotes>
         <dependencies>
             <dependency id="ReqnRoll" version="3.1.2" />
