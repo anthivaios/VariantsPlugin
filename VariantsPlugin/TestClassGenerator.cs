@@ -99,8 +99,8 @@ namespace VariantsPlugin
             generationContext.TestClass.IsPartial = true;
             generationContext.TestClass.TypeAttributes |= TypeAttributes.Public;
 
-            _linePragmaHandler.AddLinePragmaInitial(generationContext.TestClass,
-                generationContext.Document.SourceFilePath);
+            _linePragmaHandler.AddLinePragmaInitial(generationContext.TestClass, generationContext.Document.SourceFilePath, generationContext.FeatureFileInput?.CodeBehindFilePath);
+
 
             _testGeneratorProvider.SetTestClass(generationContext, generationContext.Feature.Name,
                 generationContext.Feature.Description);
