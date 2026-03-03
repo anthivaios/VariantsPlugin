@@ -38,7 +38,7 @@ namespace VariantsPlugin
 
             _variantKey = config?.VariantKey ?? "Operator";
 
-            var retryConfig = config?.IsRetryActive;
+            var retryConfig = config?.IsRetryActive ?? new RetryConfig();            
             
             // Create custom unit test provider based on user defined config value
             if (string.IsNullOrEmpty(utp))
