@@ -931,12 +931,12 @@ namespace VariantsPlugin
         {
             // START NEW CODE
             // call scenario cleanup
-            if ((IsRetryActive.Enabled || IsRetryActive.ApplyGlobally) && (scenarioDefinition.GetTags()
+            if ((IsRetryActive.Enabled && (scenarioDefinition.GetTags()
                                       .Any(c =>
                                           c.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase) ||
                                           Regex.Match(c.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$",
                                               RegexOptions.IgnoreCase).Success)
-                                  || _retryHelper.FeatureHasRetryTag))
+                                  || _retryHelper.FeatureHasRetryTag) ) || IsRetryActive.ApplyGlobally)
             {
                 // Step 1: testRunner.ScenarioContext.TestError != null
                 var testErrorNotNullCondition = new CodeBinaryOperatorExpression(
