@@ -8,6 +8,7 @@ namespace VariantsPlugin
     {
         public bool FeatureHasRetryTag { get; private set; }
         public int FeatureRetryCount { get; private set; }
+        public bool HasGlobalRetry { get; private set; }
         
         public List<string> GetRetryTag(ReqnrollFeature feature)
         {
@@ -33,6 +34,10 @@ namespace VariantsPlugin
             return feature.ScenarioDefinitions.Any(a => a.GetTags().Any(b => b.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase)
                                                                              || Regex.IsMatch(b.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$", RegexOptions.IgnoreCase)));
         }
-        public void SetFeatureRetriesNumber(int number) => FeatureRetryCount = number;
+        public void SetFeatureRetriesNumber(int number)
+        { 
+            FeatureRetryCount = number;
+        }
+        public void SetHasGlobalRetries() => HasGlobalRetry = true;
     }
 }

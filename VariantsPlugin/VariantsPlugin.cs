@@ -33,14 +33,13 @@ namespace VariantsPlugin
             var codeDomHelper = objectContainer.Resolve<CodeDomHelper>(language);
             var decoratorRegistry = objectContainer.Resolve<DecoratorRegistry>();
             var reqnrollConfiguration = objectContainer.Resolve<ReqnrollConfiguration>();
-            using var doc = JsonDocument.Parse(reqnrollConfiguration.ConfigSourceText);
-            var root = doc.RootElement;
+            var config = JsonSerializer.Deserialize<ConfigurationRoot>(
+                reqnrollConfiguration.ConfigSourceText);
 
-            _variantKey = root.TryGetProperty(VariantKeyName, out var variantProp)
-                ? variantProp.GetString()
-                : "Operator";
+            _variantKey = config?.VariantKey ?? "Operator";
 
-            var isRetryActive = root.TryGetProperty("IsRetryActive", out var retryProp) && retryProp.GetBoolean();
+            var retryConfig = config?.IsRetryActive ?? new RetryConfig();            
+            
             // Create custom unit test provider based on user defined config value
             if (string.IsNullOrEmpty(utp))
             {
@@ -58,7 +57,7 @@ namespace VariantsPlugin
             e.ObjectContainer.RegisterInstanceAs(generatorProvider);
             e.ObjectContainer.RegisterInstanceAs<IFeatureGeneratorProvider>(
                 new FeatureGeneratorProviderExtended(new FeatureGeneratorExtended(generatorProvider, codeDomHelper,
-                    reqnrollConfiguration, decoratorRegistry, _variantKey, isRetryActive)),
+                    reqnrollConfiguration, decoratorRegistry, _variantKey, retryConfig)),
                 "default"
             );
         }
@@ -71,5 +70,17 @@ namespace VariantsPlugin
                 "mstest" => new MsTestProviderExtended(codeDomHelper, _variantKey),
                 _ => new NUnitProviderExtended(codeDomHelper, _variantKey)
             };
+    }
+    public class ConfigurationRoot
+    {
+        public string? VariantKey { get; set; }
+        public RetryConfig? IsRetryActive { get; set; }
+    }
+
+    public class RetryConfig
+    {
+        public bool Enabled { get; set; }
+        public bool ApplyGlobally { get; set; }
+        public int GlobalMaxRetries { get; set; }
     }
 }

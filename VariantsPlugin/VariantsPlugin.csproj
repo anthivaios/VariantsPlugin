@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Reqnroll" Version="3.2.0" />
-      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.2.0" />
+      <PackageReference Include="Reqnroll" Version="3.3.3" />
+      <PackageReference Include="Reqnroll.CustomPlugin" Version="3.3.3" />
     </ItemGroup>
 
     <ItemGroup>

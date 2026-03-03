@@ -34,12 +34,12 @@ namespace VariantsPlugin
         public const string CustomGeneratedComment = "Generation customised by VariantPlugin";
         private const string IGNORE_TAG = "@Ignore";
 
-        public bool IsRetryActive;
+        public RetryConfig IsRetryActive;
         // STARTS CODE
 
         public FeatureGeneratorExtended(IUnitTestGeneratorProvider testGeneratorProvider, CodeDomHelper codeDomHelper,
             ReqnrollConfiguration reqnrollConfiguration, IDecoratorRegistry decoratorRegistry, string variantKey,
-            bool isRetryActive)
+            RetryConfig isRetryActive)
             : base(decoratorRegistry, testGeneratorProvider, codeDomHelper, reqnrollConfiguration)
         {
             _testGeneratorProvider = testGeneratorProvider;
@@ -82,7 +82,13 @@ namespace VariantsPlugin
             _featureVariantTags = _variantHelper.FeatureTags(feature);
 
 
-            if (IsRetryActive)
+            if (IsRetryActive.ApplyGlobally)
+            {
+                if (IsRetryActive.GlobalMaxRetries < 2)
+                    throw new ArgumentException("Global retries should be more than 2");
+                _retryHelper.SetFeatureRetriesNumber(IsRetryActive.GlobalMaxRetries);
+                _retryHelper.SetHasGlobalRetries();
+            }else if (IsRetryActive.Enabled)
             {
                 var retryTag = _retryHelper.GetRetryTag(feature);
                 if (retryTag.Count > 1)
@@ -925,7 +931,7 @@ namespace VariantsPlugin
         {
             // START NEW CODE
             // call scenario cleanup
-            if (IsRetryActive && (scenarioDefinition.GetTags()
+            if ((IsRetryActive.Enabled || IsRetryActive.ApplyGlobally) && (scenarioDefinition.GetTags()
                                       .Any(c =>
                                           c.GetNameWithoutAt().Equals("retry", StringComparison.OrdinalIgnoreCase) ||
                                           Regex.Match(c.GetNameWithoutAt(), @"^retry(?:\((\d+)\))?$",
@@ -1010,7 +1016,7 @@ namespace VariantsPlugin
 
             if (scenarioCategories.Any())
             {
-                if (IsRetryActive)
+                if (IsRetryActive.Enabled || IsRetryActive.ApplyGlobally)
                 {
                     SetRetry(generationContext, testMethod, scenarioCategories);
                 }
@@ -1199,7 +1205,7 @@ namespace VariantsPlugin
                 .FirstOrDefault(v => v.HasValue);
 
             // Fallback to feature-level retry count if applicable
-            if (_retryHelper.FeatureHasRetryTag && _retryHelper.FeatureRetryCount > 0)
+            if ((_retryHelper.FeatureHasRetryTag || _retryHelper.HasGlobalRetry) && _retryHelper.FeatureRetryCount > 0)
             {
                 retryValue = _retryHelper.FeatureRetryCount;
             }
