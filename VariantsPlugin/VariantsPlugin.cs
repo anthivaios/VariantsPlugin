@@ -39,12 +39,7 @@ namespace VariantsPlugin
             _variantKey = config?.VariantKey ?? "Operator";
 
             var retryConfig = config?.IsRetryActive;
-
-            bool isRetryActive = retryConfig?.Enabled ?? false;
-            bool applyGlobally = retryConfig?.ApplyGlobally ?? false;
-            int globalMaxRetries = retryConfig?.GlobalMaxRetries ?? 0;
             
-            //throw new Exception($"Variantkey: {_variantKey}, isRetryActive: {isRetryActive}, applyGlobally: {applyGlobally}, globalMaxRetries: {globalMaxRetries}");
             // Create custom unit test provider based on user defined config value
             if (string.IsNullOrEmpty(utp))
             {
